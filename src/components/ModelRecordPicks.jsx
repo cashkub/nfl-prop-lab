@@ -27,7 +27,7 @@ const sourceType=r=>r.lineSource==='average'||r.isAverageLine?'average':r.price=
 const resultClass=r=>(r.result||'pending').toLowerCase().replace(' ','-');
 const recentResults=r=>Array.isArray(r.values)?r.values.slice(-5):[];
 
-function SummaryTile({icon:Icon,label,value,detail,tone=''}){
+export function SummaryTile({icon:Icon,label,value,detail,tone=''}){
   return <article className={`mr-stat ${tone}`}><span className="mr-stat-icon"><Icon size={17}/></span><div><small>{label}</small><strong>{value}</strong><em>{detail}</em></div></article>;
 }
 
