@@ -8,7 +8,7 @@ import './LeagueHome.css';
 //   hero:     {league, photo, accent, date, lines:[text]}
 //   record:   [{label, wins, losses, pending, href}]
 //   sections: [{title, note, href, linkLabel, rows:[{id, rank, name, playerId, photo, color,
-//               pick, price, status, tone, chance, chanceStyle, support}]}]
+//               pick, price, final, status, tone, chance, chanceStyle, support}]}]
 //   games:    {title, note, href, sport, rows:[{id, color, away, home, when, isLive, awayScore, homeScore,
 //               scoreLabel (model), awayActual, homeActual, actualLabel, pickSide, pickText, result, tone}]}
 const Result=({text,tone})=>text?<em className={'lh-result '+(tone||'')}>{text}</em>:null;
@@ -27,7 +27,7 @@ function PickRow({row}){
   return <li style={{'--club':row.color||'#a775cf'}}>
     <span className="lh-rank">{row.rank}</span>
     <PlayerPhoto id={row.playerId} name={row.name} url={row.photo} eager/>
-    <span className="lh-who"><b>{row.name}</b><small>{row.pick}{row.price?<i> · {row.price}</i>:null}</small></span>
+    <span className="lh-who"><b>{row.name}</b><small>{row.pick}{row.price?<i> · {row.price}</i>:null}</small>{row.final?<small className={'lh-final '+(row.tone||'')}>{row.final}</small>:null}</span>
     <Result text={row.status} tone={row.tone}/>
     <span className="lh-chance"><strong style={row.chanceStyle}>{row.chance}</strong>{row.support?<small>{row.support}</small>:null}</span>
   </li>;

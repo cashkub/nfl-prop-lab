@@ -1,5 +1,6 @@
 import {priceText} from '../lib/bookLine.js';
 import {plainWhy} from '../lib/plainWhy.js';
+import {statLine} from '../lib/liveBox.js';
 import PregameForm from './PregameForm.jsx';
 import {useArchive} from './useArchive.js';
 import {useLiveNfl} from './useLiveNfl.js';
@@ -100,8 +101,9 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
             <span className="pick-row-rank">{displayRank}</span>
             <PlayerPhoto id={pick.player.id} name={pick.player.name} url={pick.player.photo}/>
             <span className="pick-row-who"><b>{pick.player.name}</b><small>{pick.quote.anytime?'Anytime touchdown':`${pick.side==='under'?'Under':'Over'} ${pick.line} ${String(markets[pick.metric]).toLowerCase()}`}{pick.quote.isBookLine&&Number.isFinite(rowPrice)?<i> · {priceText(rowPrice)}</i>:null}</small>
+              {pick.finalStat?<small className={'pick-row-final '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||(pick.live?'live':''))}>{pick.finalStat}</small>:null}
               <small className="pick-row-game"><TeamLogo team={pick.player.team}/>{pick.player.team} vs {pick.game.opponent} · {new Date(pick.game.kickoff).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})}</small></span>
-            <span className="pick-row-chance"><b style={rateStyle(pick.chance)}>{formatRate(pick.chance)}</b><small>{pick.quote.anytime?'to score':'model chance'}</small>{pick.result?<em className={'pick-row-result '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||'')}>{pick.result}{pick.actual!=null&&!pick.quote.anytime?' · '+pick.actual:''}</em>:pick.live?<em className="pick-row-result live">Live · {pick.liveActual}{pick.quote.anytime?' TD':''}</em>:Date.parse(pick.game.kickoff)<=now&&!isReplay?<em className="pick-row-result">Started</em>:null}</span>
+            <span className="pick-row-chance"><b style={rateStyle(pick.chance)}>{formatRate(pick.chance)}</b><small>{pick.quote.anytime?'to score':'model chance'}</small>{pick.result?<em className={'pick-row-result '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||'')}>{pick.result}</em>:pick.live?<em className="pick-row-result live">Live</em>:Date.parse(pick.game.kickoff)<=now&&!isReplay?<em className="pick-row-result">Started</em>:null}</span>
             <ChevronDown className="pick-row-chevron" size={18}/>
           </button>
           {pickOpen&&<div className="pick-body">

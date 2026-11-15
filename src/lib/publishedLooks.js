@@ -1,3 +1,4 @@
+import {statLine} from './liveBox.js';
 // Rebuild the Top Looks card from the published record. The current roster and
 // fixture supply navigation targets only. All displayed estimates are pregame.
 export function publishedLook(row,players,games){
@@ -5,7 +6,7 @@ export function publishedLook(row,players,games){
   const fixture=games.find(g=>g.id===row.gameId)||row;
   const game={...fixture,id:row.gameId,away:row.away,home:row.home,kickoff:row.kickoff,opponent:row.team===row.home?row.away:row.home};
   return {...row.look,player:{...player,team:row.team},game,metric:row.metric,line:row.line,side:row.side,
-    chance:row.modelHitRate,result:row.result||null,actual:row.actual??null,live:Boolean(row.live),liveActual:row.liveActual??null,projection:row.projection,rankScore:row.rankScore,hits:row.hits,history:row.values,
+    chance:row.modelHitRate,result:row.result||null,actual:row.actual??null,finalStat:statLine(row),live:Boolean(row.live),liveActual:row.liveActual??null,projection:row.projection,rankScore:row.rankScore,hits:row.hits,history:row.values,
     favoriteReason:row.favoriteReason,injury:{notes:row.injuries||[]},usageKey:row.usageKey,usageTrend:row.usageTrend,
     share:row.usageShare,scoring:row.scoring,weather:row.weather,absence:row.absence||null,touchdownModel:Boolean(row.tdModel),publishedRank:row.rank};
 }

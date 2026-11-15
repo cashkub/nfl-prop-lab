@@ -32,3 +32,13 @@ test('live games take the final score only once the game is over',()=>{
   assert.equal(liveGame({away:'KC',home:'ATL'},scores(false)).final,undefined);
   assert.deepEqual(liveGame({away:'KC',home:'ATL',final:[1,2]},scores(true)).final,[1,2]);
 });
+import {statLine} from '../src/lib/liveBox.js';
+test('stat lines read in plain words',()=>{
+  assert.equal(statLine({kind:'prop',label:'Receptions',result:'Hit',actual:5}),'Final: 5 receptions');
+  assert.equal(statLine({kind:'prop',label:'Rushing Yards',result:'Miss',actual:1}),'Final: 1 rushing yard');
+  assert.equal(statLine({kind:'prop',label:'Receptions',live:true,liveActual:3}),'Now: 3 receptions');
+  assert.equal(statLine({kind:'touchdown',result:'Miss',actual:0}),'Final: no touchdown');
+  assert.equal(statLine({kind:'touchdown',result:'Hit',actual:2}),'Final: 2 touchdowns');
+  assert.equal(statLine({kind:'prop',label:'Receptions'}),'');
+  assert.equal(statLine({kind:'prop',label:'Receptions',result:'No Stat',actual:null}),'');
+});

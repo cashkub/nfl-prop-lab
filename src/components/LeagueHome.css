@@ -80,3 +80,5 @@
 }
 @media(prefers-reduced-motion:reduce){.lh-live::before{animation:none}.lh-tile{transition:none}}
 .lh-result.live{background:#17352a;color:#8ee6b0}
+.lh-who .lh-final{font-weight:700;color:#e6dcef}
+.lh-who .lh-final.hit,.lh-who .lh-final.live{color:#8ee6b0}.lh-who .lh-final.miss{color:#f5a3ad}.lh-who .lh-final.push{color:#f2cf73}

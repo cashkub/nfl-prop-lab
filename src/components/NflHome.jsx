@@ -8,6 +8,7 @@ import {rateStyle} from './HitRate.jsx';
 import {teamColor} from '../lib/teamColors.js';
 import {useLiveNfl} from './useLiveNfl.js';
 import {scoreKey} from '../lib/liveScores.js';
+import {statLine} from '../lib/liveBox.js';
 
 const MODEL='2026.11.v2';
 const eastern={timeZone:'America/New_York'};
@@ -24,11 +25,10 @@ const tone=result=>({Hit:'hit',Win:'hit',Miss:'miss',Loss:'miss',Push:'push'})[r
 const plural=(n,word)=>`${n} ${word}${n===1?'':'s'}`;
 
 const pickRow=row=>{
-  const unit=row.kind==='touchdown'?'TD':'';
-  const status=row.result||(row.live?`Live · ${row.liveActual}${unit?' '+unit:''}`:Date.parse(row.kickoff)<=Date.now()?'Started':'');
+  const status=row.result||(row.live?'Live':Date.parse(row.kickoff)<=Date.now()?'Started':'');
   return {id:row.id,rank:row.rank,name:row.player,playerId:row.playerId,photo:row.photo,color:teamColor(row.team),
     pick:row.kind==='touchdown'?'Anytime touchdown':`${row.side==='under'?'Under':'Over'} ${row.line} ${String(row.label||'').toLowerCase()}`,
-    price:Number.isFinite(row.price)?priceText(row.price):'',status:row.result&&row.actual!=null&&row.kind!=='touchdown'?`${row.result} · ${row.actual}`:status,tone:row.result?tone(row.result):row.live?'live':'',
+    price:Number.isFinite(row.price)?priceText(row.price):'',status,tone:row.result?tone(row.result):row.live?'live':'',final:statLine(row),
     chance:formatRate(row.modelHitRate),chanceStyle:rateStyle(row.modelHitRate),
     support:row.total?`${row.hits} of last ${row.total}`:''};
 };

@@ -49,3 +49,13 @@ export function liveGame(row,scores){
   const game=scores.get(scoreKey(row.away,row.home));
   return game?.final?{...row,final:[game.away,game.home],provisional:true}:row;
 }
+
+// "5 receptions", "1 rushing yard", "no touchdown": a pick's stat in plain words.
+export function statLine(row){
+  const live=Boolean(row.live&&!row.result),value=live?row.liveActual:row.actual;
+  if(value==null||(!live&&!row.result)||row.result==='No Stat')return '';
+  const count=Number(value);
+  const unit=row.kind==='touchdown'?'touchdowns':String(row.label||'').toLowerCase();
+  const text=row.kind==='touchdown'&&count===0?'no touchdown':`${count} ${count===1?unit.replace(/s$/,''):unit}`;
+  return `${live?'Now':'Final'}: ${text}`;
+}
