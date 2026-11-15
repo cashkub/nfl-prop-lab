@@ -55,11 +55,16 @@
 .lh-games{display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:.55rem}
 .lh-game{display:grid;gap:.4rem;padding:.75rem .85rem;border-radius:.3rem .75rem .75rem .3rem;background:linear-gradient(120deg,color-mix(in srgb,var(--club) 13%,#1b1c21),#1b1c21 60%);box-shadow:inset 3px 0 var(--club)}
 .lh-game:hover{background:linear-gradient(120deg,color-mix(in srgb,var(--club) 22%,#1b1c21),#22232a 60%)}
-.lh-game>small{font-size:.72rem;color:#a399ad}
+.lh-game>small{display:flex;align-items:baseline;font-size:.72rem;color:#a399ad}
+.lh-game>small span{margin-right:auto}
+.lh-game.is-live>small span{color:#8ee6b0;font-weight:700}
+.lh-game>small i,.lh-game>small u{font-style:normal;text-decoration:none;text-align:right}
+.lh-game>small i{width:2.6rem}.lh-game>small u{width:2.3rem;font-size:.66rem}
 .lh-side{display:flex;align-items:center;gap:.45rem;font-size:1rem;color:#bdb3c7}
 .lh-side .team-logo{width:1.35rem;height:1.35rem;object-fit:contain}
 .lh-side b{font-weight:650}
-.lh-side i{margin-left:auto;font-style:normal;font-weight:750;font-variant-numeric:tabular-nums}
+.lh-side i{margin-left:auto;width:2.6rem;text-align:right;font-style:normal;font-weight:750;font-variant-numeric:tabular-nums}
+.lh-side u{width:2.3rem;text-align:right;text-decoration:none;font-size:.82rem;font-weight:650;color:#c9a3f5;font-variant-numeric:tabular-nums}
 .lh-side.is-pick{color:#fff}.lh-side.is-pick b{font-weight:800}
 .lh-game>em{display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding-top:.45rem;border-top:1px solid #ffffff14;font-style:normal;font-size:.76rem;color:#c3b9cd}
 .lh-note{margin:0;font-size:.76rem;color:#948b9e}

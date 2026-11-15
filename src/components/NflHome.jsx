@@ -6,6 +6,8 @@ import {priceText} from '../lib/bookLine.js';
 import {formatRate} from '../lib/stats.js';
 import {rateStyle} from './HitRate.jsx';
 import {teamColor} from '../lib/teamColors.js';
+import {useLiveScores} from './useLiveScores.js';
+import {scoreKey} from '../lib/liveScores.js';
 
 const MODEL='2026.11.v2';
 const eastern={timeZone:'America/New_York'};
@@ -29,18 +31,22 @@ const pickRow=row=>{
     chance:formatRate(row.modelHitRate),chanceStyle:rateStyle(row.modelHitRate),
     support:row.total?`${row.hits} of last ${row.total}`:''};
 };
-const gameRow=row=>{
-  const pick=row.markets.moneyline,score=row.overall,final=row.final?.length===2?row.final:null;
-  const projected=score?.length===2,result=final&&pick?gameResult(row,'moneyline'):'';
+const gameRow=(row,scores)=>{
+  const pick=row.markets.moneyline,model=row.overall,projected=model?.length===2;
+  // Saved finals win; otherwise use the live scoreboard when it has this game.
+  const live=row.final?.length===2?{away:row.final[0],home:row.final[1],final:true,detail:'Final'}:scores.get(scoreKey(row.away,row.home));
+  const pickWon=live?.final&&pick&&live.away!==live.home?(live.home>live.away?row.home:row.away)===pick.side:null;
+  const result=pickWon==null?'':pickWon?'Win':'Loss';
   return {id:row.id,color:teamColor(pick?.side||row.home),away:row.away,home:row.home,
-    when:final?'Final':time.format(new Date(row.kickoff)),scoreLabel:!final&&projected?'model score':'',
-    awayScore:final?final[0]:projected?Math.round(score[0]):null,homeScore:final?final[1]:projected?Math.round(score[1]):null,
+    when:live?live.detail:time.format(new Date(row.kickoff)),isLive:Boolean(live&&!live.final),
+    awayScore:projected?Math.round(model[0]):null,homeScore:projected?Math.round(model[1]):null,scoreLabel:projected?'Model':'',
+    awayActual:live?live.away:null,homeActual:live?live.home:null,actualLabel:live?(live.final?'Final':'Live'):'',
     pickSide:pick?.side,pickText:pick?`Pick ${pick.side}${Number.isFinite(pick.probability)?` · ${Math.round(100*pick.probability)}%`:''}`:'',
-    result:result&&result!=='Pending'?result:'',tone:tone(result)};
+    result,tone:tone(result)};
 };
 
 export default function NflHome(){
-  const picks=useArchive('nfl-picks.json'),games=useArchive('model-record.json');
+  const picks=useArchive('nfl-picks.json'),games=useArchive('model-record.json'),scores=useLiveScores();
   if(picks.error&&games.error)return <p>Home data is unavailable right now. Use the menu to open a page.</p>;
   if(!picks.rows||!games.rows)return <p>Loading…</p>;
   const published=picks.rows.filter(r=>r.model===MODEL);
@@ -60,5 +66,5 @@ export default function NflHome(){
     sections={[
       {title:'Top looks',href:'#top-eight',linkLabel:`See all ${props.length}`,rows:props.slice(0,5).map(pickRow)},
       {title:'Most likely to score',href:'#top-eight',linkLabel:`See all ${touchdowns.length}`,rows:touchdowns.slice(0,5).map(pickRow)}]}
-    games={{title:'Games',note:gameDay&&gameDay!==shown?dayTitle(gameDay,'short'):'',href:'#nfl-games',sport:'nfl',rows:slate.map(gameRow)}}/>;
+    games={{title:'Games',note:gameDay&&gameDay!==shown?dayTitle(gameDay,'short'):'',href:'#nfl-games',sport:'nfl',rows:slate.map(row=>gameRow(row,scores))}}/>;
 }

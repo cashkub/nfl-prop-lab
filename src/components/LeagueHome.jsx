@@ -9,8 +9,8 @@ import './LeagueHome.css';
 //   record:   [{label, wins, losses, pending, href}]
 //   sections: [{title, note, href, linkLabel, rows:[{id, rank, name, playerId, photo, color,
 //               pick, price, status, tone, chance, chanceStyle, support}]}]
-//   games:    {title, note, href, sport, rows:[{id, color, away, home, when, awayScore, homeScore,
-//               scoreLabel, pickSide, pickText, result, tone}]}
+//   games:    {title, note, href, sport, rows:[{id, color, away, home, when, isLive, awayScore, homeScore,
+//               scoreLabel (model), awayActual, homeActual, actualLabel, pickSide, pickText, result, tone}]}
 const Result=({text,tone})=>text?<em className={'lh-result '+(tone||'')}>{text}</em>:null;
 
 function RecordTile({label,wins,losses,pending,href}){
@@ -34,10 +34,12 @@ function PickRow({row}){
 }
 
 function GameRow({row,sport,href}){
-  const side=(team,score)=><span className={'lh-side'+(row.pickSide===team?' is-pick':'')}><TeamLogo team={team} sport={sport}/><b>{team}</b><i>{score??'–'}</i></span>;
-  return <a className="lh-game" href={href} style={{'--club':row.color||'#a775cf'}}>
-    <small>{row.when}{row.scoreLabel?<span> · {row.scoreLabel}</span>:null}</small>
-    {side(row.away,row.awayScore)}{side(row.home,row.homeScore)}
+  const played=row.awayActual!=null&&row.homeActual!=null;
+  const side=(team,model,actual)=><span className={'lh-side'+(row.pickSide===team?' is-pick':'')}><TeamLogo team={team} sport={sport}/><b>{team}</b>
+    <i>{model??'–'}</i>{played?<u>{actual}</u>:null}</span>;
+  return <a className={'lh-game'+(row.isLive?' is-live':'')} href={href} style={{'--club':row.color||'#a775cf'}}>
+    <small><span>{row.when}</span>{row.scoreLabel?<i>{row.scoreLabel}</i>:null}{played?<u>{row.actualLabel}</u>:null}</small>
+    {side(row.away,row.awayScore,row.awayActual)}{side(row.home,row.homeScore,row.homeActual)}
     <em>{row.pickText||'No pick saved'}<Result text={row.result} tone={row.tone}/></em>
   </a>;
 }
