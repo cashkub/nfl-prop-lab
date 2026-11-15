@@ -70,3 +70,5 @@
   .prop-charts-tag{display:none}
   .prop-cell>small{font-size:.6rem}
 }
+.prop-primary{grid-template-columns:minmax(0,.6fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.3fr)}
+@media(max-width:680px){.prop-primary{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.prop-primary .prop-picker{grid-column:1/-1}}

@@ -214,3 +214,5 @@
 
 .slate-fixture b.no-edge {color:#a99db3}
 .slate-fixture b.has-edge {color:#8ee6b0}
+.slate-fixture em.value-tag {color:#8ee6b0; font-weight:600}
+.slate-fixture .slate-score {grid-column:1/-1; grid-row:2; font-size:.8rem; font-weight:600; color:#e6d9f0}

@@ -38,10 +38,12 @@ export function gamePicks(game,model){
 export const gameMarkets={moneyline:'Moneyline',total:'Over/Under',spread:'Spread'};
 
 export function marketSnapshot(game,model){
-  const {spreadTeam,spreadLine,totalSide,moneyline}=gamePicks(game,model);
+  const {winner,spreadTeam,spreadLine,totalSide}=gamePicks(game,model);
   const markets={};
-  // Only record a moneyline side when the model's win chance beats the price's break-even rate.
-  if(moneyline.value)markets.moneyline={side:moneyline.value.team,probability:moneyline.value.probability,price:moneyline.value.price,edge:moneyline.value.edge};
+  // The moneyline pick is always the model's predicted winner; edge records whether
+  // the model's win chance also beats the price's break-even rate.
+  if(winner)markets.moneyline={side:winner.team,probability:winner.probability,price:winner.price,
+    ...(winner.breakEven!=null?{edge:winner.probability-winner.breakEven}:{})};
   if(spreadTeam)markets.spread={side:spreadTeam,line:spreadLine,price:spreadTeam===game.home?game.homeSpreadPrice:game.awaySpreadPrice};
   if(totalSide==='OVER'||totalSide==='UNDER')markets.total={side:totalSide,line:game.totalLine,price:totalSide==='OVER'?game.overPrice:game.underPrice};
   return markets;

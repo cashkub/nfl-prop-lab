@@ -175,19 +175,7 @@ export default function NflGames({schedule,books,players,validation,season,now,o
 }
 
 const pct=n=>`${(100*n).toFixed(1)}%`;
-// Compare the model's win chance with the chance the price needs to break even.
-function moneylineNote(moneyline,winner){
-  const side=moneyline.value||moneyline.best;
-  if(!side)return `${pct(winner.probability)} model win · no price posted`;
-  const gap=side.edge*100;
-  return `${side.team} model ${pct(side.probability)} vs ${pct(side.breakEven)} needed (${gap>=0?'+':''}${gap.toFixed(1)})`;
-}
 
-function shortMoneylineNote(moneyline,winner){
-  const side=moneyline.value||moneyline.best;
-  if(!side)return `${winner.team} ${Math.round(100*winner.probability)}% model win`;
-  return `${side.team} model ${Math.round(100*side.probability)}% · needs ${Math.round(100*side.breakEven)}%`;
-}
 
 function WeeklySlate({games,onOpen}){
   const days=new Map();
@@ -205,8 +193,10 @@ function WeeklySlate({games,onOpen}){
       const totalPrice=totalSide==='OVER'?game.overPrice:game.underPrice;
       return <button className="slate-fixture" type="button" key={gameKey(game)} onClick={()=>onOpen(gameKey(game))}>
         <span className="slate-pair"><b><span style={{'--club':teamColor(game.away)}}><TeamLogo team={game.away}/>{game.away}</span> @ <span style={{'--club':teamColor(game.home)}}><TeamLogo team={game.home}/>{game.home}</span></b><small>{gameTime(game)}</small></span>
-        <span><small>Moneyline</small><b className={moneyline.value?'has-edge':'no-edge'}>{moneyline.value?moneyline.value.team+' '+priceText(moneyline.value.price):moneyline.priced?'No edge':winner?winner.team+' (no price)':hasWinnerForecast?'Even':'Unavailable'}</b>
-          {winner&&<em>{shortMoneylineNote(moneyline,winner)}</em>}</span>
+        {model?.a&&model?.h&&<span className="slate-score">Model score: {game.away} {Math.round(model.a.score)}, {game.home} {Math.round(model.h.score)}</span>}
+        <span><small>Winner pick</small><b>{winner?winner.team+(Number.isFinite(winner.price)?' '+priceText(winner.price):''):hasWinnerForecast?'Even':'Unavailable'}</b>
+          {winner&&<em>{Math.round(100*winner.probability)}% model win{winner.breakEven!=null?` · needs ${Math.round(100*winner.breakEven)}%`:''}</em>}
+          {moneyline.value&&<em className="value-tag">Value: {moneyline.value.team} {priceText(moneyline.value.price)}</em>}</span>
         <span><small>Spread</small><b>{spreadTeam?spreadTeam+' '+(spreadLine>0?'+':'')+spreadLine:spreadEdge==null?'Unavailable':'No clear side'}</b>
           {spreadTeam&&Number.isFinite(spreadPrice)&&<em>{priceText(spreadPrice)}</em>}</span>
         <span><small>Total</small><b>{totalSide==='OVER'||totalSide==='UNDER'?totalSide+' '+game.totalLine:totalSide||'Unavailable'}</b>
@@ -223,7 +213,7 @@ function GamePredictions({game,model,validation,players,bookGame}){
   return <div className="nfl-view-panel">
     <div className="nfl-predictions-heading"><div><h3>Model picks</h3></div><span>RESEARCH OUTPUT · NOT A BETTING EDGE</span></div>
     <div className="nfl-pick-grid">
-      <PickTile label="MONEYLINE VALUE" team={moneyline.value?.team} value={moneyline.value?`${moneyline.value.team} ${priceText(moneyline.value.price)}`:moneyline.priced?'No edge at these prices':winner?.team||(hasWinnerForecast?'NO CLEAR WINNER':'Forecast unavailable')} detail={winner?`Model favorite ${winner.team} wins ${pct(winner.probability)} of the time. ${moneylineNote(moneyline,winner)}.`:hasWinnerForecast?'Elo probabilities are effectively even.':'No calibrated Elo forecast for this game.'}/>
+      <PickTile label="WINNER PICK" team={winner?.team} value={winner?.team||(hasWinnerForecast?'NO CLEAR WINNER':'Forecast unavailable')} detail={winner?`${pct(winner.probability)} model win probability${Number.isFinite(projectedTotal)?` · projected score ${game.away} ${model.a.score.toFixed(1)}, ${game.home} ${model.h.score.toFixed(1)}`:''}. ${winner.breakEven==null?'No moneyline price posted.':`At ${priceText(winner.price)} the price needs ${pct(winner.breakEven)} to break even.`}${moneyline.value?` Best value by the model: ${moneyline.value.team} ${priceText(moneyline.value.price)}.`:moneyline.priced?' The model sees no value on either moneyline.':''}`:hasWinnerForecast?'Elo probabilities are effectively even.':'No calibrated Elo forecast for this game.'}/>
       <PickTile label="SPREAD PICK" team={spreadTeam} value={spreadTeam&&Number.isFinite(spreadLine)?`${spreadTeam} ${spreadLine>0?'+':''}${spreadLine}`:spreadEdge==null?'Spread line unavailable':'No clear side'} detail={Number.isFinite(margin)?`Model margin: ${margin>0?'+':''}${margin.toFixed(1)} points for ${game.home}.`:'Team score projection unavailable.'}/>
       <PickTile label="OVER / UNDER PICK" value={totalSide&&Number.isFinite(game.totalLine)?`${totalSide} ${game.totalLine}`:totalSide||'Total line unavailable'} detail={Number.isFinite(projectedTotal)?`Projected total ${projectedTotal.toFixed(1)} points${Number.isFinite(game.totalLine)?` vs. ${game.totalLine} schedule line`:''}.`:'Team score projection unavailable.'}/>
 

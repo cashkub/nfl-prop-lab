@@ -8,7 +8,8 @@ import {defenseTable} from '../lib/matchup.js';
 import {getPlayerGames,formatRate,isHit,summarize,estimateModelHitRate} from '../lib/stats.js';
 import {teamColor} from '../lib/teamColors.js';
 import {nextGame} from '../lib/schedule.js';
-import {WeekAndMatchup,TeamFilter,useChartSlate} from './ChartSlate.jsx';
+import {TeamFilter,useChartSlate} from './ChartSlate.jsx';
+import {dayKey,dayLabel} from '../lib/topLooksModel.js';
 import {rateStyle,DefenseRank} from './HitRate.jsx';
 import SortableTable from './SortableTable.jsx';
 import PropPlayerFilter from './PropPlayerFilter.jsx';
@@ -32,6 +33,10 @@ function LastFive({row,side}) {
 export default function NflPropList({players,roster,schedule,season,books,markets,now,loading,error,onOpen}) {
   const future=useMemo(()=>schedule.filter(g=>Date.parse(g.kickoff)>now),[schedule,now]);
   const slate=useChartSlate(future,now);
+  const [day,setDay]=useState('');
+  const days=[...new Set(slate.games.map(g=>dayKey(g.kickoff)))].sort();
+  const activeDay=days.includes(day)?day:'';
+  const dayGames=activeDay?slate.games.filter(g=>dayKey(g.kickoff)===activeDay):slate.games;
   const [market,setMarket]=useState('ALL');
   const [side,setSide]=useState('over');
   const [venue,setVenue]=useState('ALL');
@@ -44,7 +49,7 @@ export default function NflPropList({players,roster,schedule,season,books,market
   const [limit,setLimit]=useState(24);
   const rows=useMemo(()=>{
     const result=[],ranks=new Map();
-    const games=slate.game?[slate.game]:slate.games;
+    const games=slate.game?[slate.game]:dayGames;
     for(const fixture of games){
       const quotes=quotedPlayers(matchupBook(books,fixture),fixture,players);
       const entries=quotes.length ? quotes.map(({line,player,status})=>({
@@ -83,7 +88,7 @@ export default function NflPropList({players,roster,schedule,season,books,market
     const model=r=>Number.isFinite(r.modelEstimate.rate)?r.modelEstimate.rate:-1;
     return result.sort((a,b)=>Number(!!b.quote)-Number(!!a.quote) || Number(b.edge!=null)-Number(a.edge!=null) ||
       (a.edge!=null?b.edge-a.edge:model(b)-model(a)) || b.summary.total-a.summary.total || a.player.name.localeCompare(b.player.name));
-  },[players,roster,season,books,markets,now,slate.week,slate.game,slate.team,future,market,side,venue]);
+  },[players,roster,season,books,markets,now,slate.week,slate.game,slate.team,future,market,side,venue,activeDay]);
   const matches=rows.filter(r=>r.summary.total>=Number(minimum) && (source==='ALL' || (source==='book')===!!r.quote) && r.player.name.toLowerCase().includes(search.trim().toLowerCase()));
   const choices=[...new Map(matches.map(r=>[r.player.id,r.player])).values()].sort((a,b)=>a.name.localeCompare(b.name) || a.team.localeCompare(b.team));
   const activeId=choices.some(p=>p.id===playerId)?playerId:'';
@@ -109,13 +114,15 @@ export default function NflPropList({players,roster,schedule,season,books,market
     <NflToolHeader active="props"/>
     {loading || error?<p>{error || 'Loading player props…'}</p>:<>
       <div className="prop-list-filters prop-primary">
-        <WeekAndMatchup slate={slate}/>
+        <ChartSelect label="Game week" value={slate.week} onChange={week=>{slate.changeWeek(week);setDay('')}}>{slate.weeks.map(w=><option key={w} value={w}>{w}</option>)}</ChartSelect>
+        <ChartSelect label="Game day" value={activeDay} onChange={value=>{setDay(value);slate.changeMatch('')}}><option value="">All days</option>{days.map(d=><option key={d} value={d}>{dayLabel(d)}</option>)}</ChartSelect>
+        <ChartSelect label="Matchup" value={slate.game?.id || ''} onChange={slate.changeMatch}><option value="">All matchups</option>{dayGames.map(g=><option key={g.id} value={g.id}>{g.away} at {g.home}</option>)}</ChartSelect>
         <PropPlayerFilter choices={choices} value={activeId} query={search}
           onQuery={text=>{setSearch(text);setPlayerId('')}}
           onSelect={id=>{setPlayerId(id);setSearch('')}}/>
       </div>
       <details className="prop-advanced">
-        <summary className="chart-disclosure"><b>Filters</b><span>{slate.team || 'All Teams'} · {market==='ALL'?'All Markets':markets[market].label} · {venueLabel} · {side==='over'?'Over':'Under'}{source!=='ALL' && ' · '+(source==='book'?'DraftKings':'Player Average')}{minimum!=='0' && ' · '+minimum+'+ Games'}</span></summary>
+        <summary className="chart-disclosure"><b>Filters</b><span>{activeDay?dayLabel(activeDay)+' · ':''}{slate.team || 'All Teams'} · {market==='ALL'?'All Markets':markets[market].label} · {venueLabel} · {side==='over'?'Over':'Under'}{source!=='ALL' && ' · '+(source==='book'?'DraftKings':'Player Average')}{minimum!=='0' && ' · '+minimum+'+ Games'}</span></summary>
         <div className="prop-list-filters">
         <TeamFilter slate={slate}/>
         <ChartSelect label="Game History" value={venue} onChange={setVenue}><option value="ALL">All Games</option><option value="H">Home Games</option><option value="A">Away Games</option></ChartSelect>
