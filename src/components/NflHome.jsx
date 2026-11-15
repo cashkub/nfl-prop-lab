@@ -1,61 +1,43 @@
 import React from 'react';
 import {useArchive} from './useArchive.js';
-import PlayerPhoto from './PlayerPhoto.jsx';
-import TeamLogo from './TeamLogo.jsx';
+import LeagueHome from './LeagueHome.jsx';
 import {gameResult} from '../lib/gamePicks.js';
 import {priceText} from '../lib/bookLine.js';
 import {formatRate} from '../lib/stats.js';
 import {rateStyle} from './HitRate.jsx';
 import {teamColor} from '../lib/teamColors.js';
-import './NflHome.css';
 
 const MODEL='2026.11.v2';
 const eastern={timeZone:'America/New_York'};
 const today=()=>new Date().toLocaleDateString('en-CA',eastern);
 const dayOf=kickoff=>new Date(Date.parse(kickoff)).toLocaleDateString('en-CA',eastern);
-const dayTitle=day=>new Intl.DateTimeFormat('en-US',{timeZone:'UTC',weekday:'long',month:'short',day:'numeric'}).format(new Date(day+'T12:00:00Z'));
+const dayTitle=(day,weekday='long')=>new Intl.DateTimeFormat('en-US',{timeZone:'UTC',weekday,month:'long',day:'numeric'}).format(new Date(day+'T12:00:00Z'));
 const time=new Intl.DateTimeFormat('en-US',{...eastern,hour:'numeric',minute:'2-digit'});
-const tally=(rows,result)=>{
-  const wins=rows.filter(r=>['Hit','Win'].includes(result(r))).length,losses=rows.filter(r=>['Miss','Loss'].includes(result(r))).length;
-  return {wins,losses,pending:rows.filter(r=>!result(r)||result(r)==='Pending').length};
-};
+const tally=(rows,result,label)=>({label,href:'#model-record',
+  wins:rows.filter(r=>['Hit','Win'].includes(result(r))).length,losses:rows.filter(r=>['Miss','Loss'].includes(result(r))).length,
+  pending:rows.filter(r=>!result(r)||result(r)==='Pending').length});
 // The slate to feature: today if it has picks, otherwise the next day that does, otherwise the latest.
 const featuredDay=days=>days.find(d=>d>=today())||days.at(-1)||'';
-const pickLine=row=>row.kind==='touchdown'?'Anytime touchdown':`${row.side==='under'?'Under':'Over'} ${row.line} ${String(row.label||'').toLowerCase()}`;
 const tone=result=>({Hit:'hit',Win:'hit',Miss:'miss',Loss:'miss',Push:'push'})[result]||'';
+const plural=(n,word)=>`${n} ${word}${n===1?'':'s'}`;
 
-function RecordCell({label,record}){
-  const graded=record.wins+record.losses,rate=graded?record.wins/graded:null;
-  return <a className="home-tile" href="#model-record" title={label}>
-    <small>{label}</small>
-    <b>{record.wins}–{record.losses}</b>
-    <span className="home-meter" aria-hidden="true"><i style={{width:rate==null?'0%':Math.round(rate*100)+'%'}}/></span>
-    <em>{rate==null?'No results yet':`${Math.round(rate*100)}% of ${graded} graded`}{record.pending?` · ${record.pending} pending`:''}</em>
-  </a>;
-}
-
-const status=row=>row.result||(Date.parse(row.kickoff)<=Date.now()?'Started':'');
-
-function PickRows({rows}){
-  return <ol className="home-rows">{rows.map(row=><li key={row.id} style={{'--club':teamColor(row.team)||'#a775cf'}}>
-    <span className="home-rank">{row.rank}</span>
-    <PlayerPhoto id={row.playerId} name={row.player} url={row.photo} eager/>
-    <span className="home-who"><b>{row.player}</b><small>{pickLine(row)}{Number.isFinite(row.price)?<i> · {priceText(row.price)}</i>:null}</small></span>
-    {status(row)?<em className={'home-result '+tone(status(row))}>{status(row)}</em>:null}
-    <strong style={rateStyle(row.modelHitRate)}>{formatRate(row.modelHitRate)}</strong>
-  </li>)}</ol>;
-}
-
-function GameRow({row}){
+const pickRow=row=>{
+  const status=row.result||(Date.parse(row.kickoff)<=Date.now()?'Started':'');
+  return {id:row.id,rank:row.rank,name:row.player,playerId:row.playerId,photo:row.photo,color:teamColor(row.team),
+    pick:row.kind==='touchdown'?'Anytime touchdown':`${row.side==='under'?'Under':'Over'} ${row.line} ${String(row.label||'').toLowerCase()}`,
+    price:Number.isFinite(row.price)?priceText(row.price):'',status,tone:tone(status),
+    chance:formatRate(row.modelHitRate),chanceStyle:rateStyle(row.modelHitRate),
+    support:row.total?`${row.hits} of last ${row.total}`:''};
+};
+const gameRow=row=>{
   const pick=row.markets.moneyline,score=row.overall,final=row.final?.length===2?row.final:null;
-  const result=final&&pick?gameResult(row,'moneyline'):'';
-  return <a className="home-game-row" href="#nfl-games" style={{'--club':teamColor(pick?.side||row.home)||'#a775cf'}}>
-    <span className="home-matchup"><TeamLogo team={row.away}/><b>{row.away}</b><i>@</i><TeamLogo team={row.home}/><b>{row.home}</b></span>
-    <span className="home-when">{final?`Final ${final[0]}–${final[1]}`:time.format(new Date(row.kickoff))}</span>
-    <small>{score?.length===2?`Model: ${row.away} ${Math.round(score[0])}, ${row.home} ${Math.round(score[1])}`:'Model score not saved'}{pick?<> · pick <b>{pick.side}</b>{Number.isFinite(pick.probability)?` ${Math.round(100*pick.probability)}%`:''}</>:null}</small>
-    {result&&result!=='Pending'?<em className={'home-result '+tone(result)}>{result}</em>:null}
-  </a>;
-}
+  const projected=score?.length===2,result=final&&pick?gameResult(row,'moneyline'):'';
+  return {id:row.id,color:teamColor(pick?.side||row.home),away:row.away,home:row.home,
+    when:final?'Final':time.format(new Date(row.kickoff)),scoreLabel:!final&&projected?'model score':'',
+    awayScore:final?final[0]:projected?Math.round(score[0]):null,homeScore:final?final[1]:projected?Math.round(score[1]):null,
+    pickSide:pick?.side,pickText:pick?`Pick ${pick.side}${Number.isFinite(pick.probability)?` · ${Math.round(100*pick.probability)}%`:''}`:'',
+    result:result&&result!=='Pending'?result:'',tone:tone(result)};
+};
 
 export default function NflHome(){
   const picks=useArchive('nfl-picks.json'),games=useArchive('model-record.json');
@@ -68,26 +50,15 @@ export default function NflHome(){
   const saved=games.rows.filter(r=>r.markets);
   const gameDay=featuredDay([...new Set(saved.map(r=>dayOf(r.kickoff)))].sort());
   const slate=saved.filter(r=>dayOf(r.kickoff)===gameDay).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
-  const market=name=>tally(saved.filter(r=>r.markets[name]),r=>gameResult(r,name));
-  const record=[['Player props',tally(published.filter(r=>r.kind==='prop'),r=>r.result)],['Anytime touchdowns',tally(published.filter(r=>r.kind==='touchdown'),r=>r.result)],
-    ['Moneyline',market('moneyline')],['Spread',market('spread')],['Over/under',market('total')]];
-  return <div className="nfl-home">
-    <section>
-      <h2 className="home-heading">Model record <a href="#model-record">Full record</a></h2>
-      <div className="home-tiles">{record.map(([label,value])=><RecordCell key={label} label={label} record={value}/>)}</div>
-    </section>
-    {props.length>0&&<section>
-      <h2 className="home-heading">Top looks <small>{dayTitle(day)}</small><a href="#top-eight">See all {props.length}</a></h2>
-      <PickRows rows={props.slice(0,5)}/>
-    </section>}
-    {touchdowns.length>0&&<section>
-      <h2 className="home-heading">Most likely to score <small>{dayTitle(day)}</small><a href="#top-eight">See all {touchdowns.length}</a></h2>
-      <PickRows rows={touchdowns.slice(0,5)}/>
-    </section>}
-    {slate.length>0&&<section>
-      <h2 className="home-heading">Games <small>{dayTitle(gameDay)}</small><a href="#nfl-games">All games</a></h2>
-      <div className="home-game-list">{slate.map(row=><GameRow key={row.id} row={row}/>)}</div>
-    </section>}
-    <p className="home-note">Picks lock at each game’s kickoff. Percentages are the model’s estimated chance, not a guarantee.</p>
-  </div>;
+  const market=(name,label)=>tally(saved.filter(r=>r.markets[name]),r=>gameResult(r,name),label);
+  const shown=day||gameDay;
+  return <LeagueHome
+    hero={{league:'NFL',photo:'/preview/assets/nfl-action.jpg',accent:'#b98aff',date:shown?dayTitle(shown):'',
+      lines:[slate.length?plural(slate.length,'game'):'',props.length+touchdowns.length?plural(props.length+touchdowns.length,'published pick'):'']}}
+    record={[tally(published.filter(r=>r.kind==='prop'),r=>r.result,'Player props'),tally(published.filter(r=>r.kind==='touchdown'),r=>r.result,'Touchdowns'),
+      market('moneyline','Moneyline'),market('spread','Spread'),market('total','Over/under')]}
+    sections={[
+      {title:'Top looks',href:'#top-eight',linkLabel:`See all ${props.length}`,rows:props.slice(0,5).map(pickRow)},
+      {title:'Most likely to score',href:'#top-eight',linkLabel:`See all ${touchdowns.length}`,rows:touchdowns.slice(0,5).map(pickRow)}]}
+    games={{title:'Games',note:gameDay&&gameDay!==shown?dayTitle(gameDay,'short'):'',href:'#nfl-games',sport:'nfl',rows:slate.map(gameRow)}}/>;
 }

@@ -1,0 +1,76 @@
+/* League home page. Shares the slanted-panel look of the league screen.
+   --accent is set per league; everything else is league-neutral. */
+.chart-lab:has(.league-home) .nfl-page-banner{display:none}
+.league-home{--slant:9deg;display:grid;gap:1.7rem;margin-top:.9rem;font-family:system-ui,sans-serif}
+.league-home section{min-width:0}
+.league-home a{color:inherit;text-decoration:none}
+
+/* Hero: league photo with a slanted lower edge. */
+.chart-lab .league-home .lh-hero{position:relative;display:grid;align-content:end;justify-items:start;gap:.35rem;min-height:clamp(13rem,30vw,19rem);margin:0;padding:1.2rem clamp(1.1rem,3vw,2.2rem) clamp(2.4rem,6vw,4rem);border:0;border-radius:1rem 1rem 0 0;overflow:hidden;isolation:isolate;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - clamp(1.6rem,5vw,3.6rem)),0 100%)}
+.lh-hero::before{content:'';position:absolute;inset:0;z-index:-2;background:var(--scene) center 40%/cover no-repeat;filter:saturate(.95) brightness(.8)}
+.lh-hero::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,#0b0910f0 6%,#0b091088 45%,transparent 78%),linear-gradient(to top right,color-mix(in srgb,var(--accent) 42%,transparent),transparent 55%)}
+.lh-live{font-size:.76rem;font-weight:750;padding:.22rem .6rem;border-radius:99px;color:#0b0910;background:var(--accent)}
+.lh-live::before{content:'';display:inline-block;width:.48rem;height:.48rem;margin-right:.4rem;border-radius:50%;background:#0b0910;animation:lh-pulse 1.6s ease-in-out infinite}
+.chart-lab .league-home .lh-hero h2{margin:0;font:italic 800 clamp(5rem,15vw,10rem)/.8 LabDisplay,Impact,sans-serif;letter-spacing:-.02em;color:#fff;text-transform:uppercase;
+  text-shadow:0 4px 0 color-mix(in srgb,var(--accent) 55%,#000),0 0 34px color-mix(in srgb,var(--accent) 45%,transparent)}
+.lh-hero p{display:flex;flex-wrap:wrap;gap:.2rem .9rem;margin:.5rem 0 0;font-size:.92rem;color:#e3daec}
+.lh-hero p b{font-size:1.05rem;font-weight:750;color:#fff}
+
+/* Headings: display type with a slanted accent mark. */
+.chart-lab .league-home .lh-heading{display:flex;align-items:baseline;gap:.6rem;margin:0 0 .75rem;font:italic 800 1.55rem/1 LabDisplay,Impact,sans-serif;letter-spacing:.01em;text-transform:uppercase;color:#fff;text-shadow:none}
+.lh-heading::before{content:'';align-self:stretch;width:.45rem;background:var(--accent);transform:skewX(calc(var(--slant) * -1))}
+.lh-heading small{font:500 .8rem/1 system-ui,sans-serif;text-transform:none;letter-spacing:0;color:#aaa0b4}
+.league-home .lh-heading a{margin-left:auto;font:650 .82rem/1 system-ui,sans-serif;text-transform:none;letter-spacing:0;color:var(--accent);white-space:nowrap}
+.lh-heading a:hover{text-decoration:underline}
+
+/* Record: slanted scoreboard tiles. */
+.lh-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.55rem;padding:0 .9rem}
+.lh-tile{display:block;transform:skewX(calc(var(--slant) * -1));background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 16%,#1b1c21),#1b1c21 65%);border-left:3px solid var(--accent);transition:background .15s}
+.lh-tile:hover{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 26%,#1b1c21),#22232a 65%)}
+.lh-tile>span{display:grid;gap:.32rem;padding:.85rem 1.2rem .85rem 1.3rem;transform:skewX(var(--slant))}
+.lh-tile small{font-size:.76rem;color:#c9bfd3;white-space:nowrap}
+.lh-tile b{font:italic 800 2.3rem/.9 LabDisplay,Impact,sans-serif;color:#fff;font-variant-numeric:tabular-nums}
+.lh-meter{display:block;height:4px;background:#35333c;overflow:hidden}
+.lh-meter i{display:block;height:100%;background:var(--accent)}
+.lh-tile em{font-style:normal;font-size:.7rem;color:#a399ad;white-space:nowrap}
+
+/* Pick lists. */
+.lh-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr));gap:1.7rem 1.1rem}
+.lh-rows{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+.lh-rows li{display:flex;align-items:center;gap:.7rem;padding:.6rem .85rem .6rem .7rem;border-radius:.3rem .75rem .75rem .3rem;background:linear-gradient(100deg,color-mix(in srgb,var(--club) 15%,#1b1c21),#1b1c21 55%);box-shadow:inset 3px 0 var(--club)}
+.lh-rank{width:1.3rem;flex:none;text-align:center;font:italic 800 1.25rem/1 LabDisplay,Impact,sans-serif;color:#b7adc1}
+.lh-rows li:first-child .lh-rank{color:var(--accent)}
+.lh-rows .player-photo{width:2.6rem;height:2.6rem;border-radius:50%;background:#2c2a33;border:1px solid color-mix(in srgb,var(--club) 60%,#444);flex:none}
+.lh-who{display:grid;gap:.1rem;min-width:0;flex:1}
+.lh-who b{font-size:.97rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lh-who small{font-size:.8rem;color:#d5ccde}.lh-who i{font-style:normal;color:#aaa0b4}
+.lh-chance{display:grid;justify-items:end;gap:.1rem;flex:none}
+.lh-chance strong{font-size:1.3rem;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.lh-chance small{font-size:.66rem;color:#a399ad;white-space:nowrap}
+.lh-result{flex:none;font-style:normal;font-size:.68rem;font-weight:750;padding:.15rem .5rem;border-radius:99px;background:#00000052;color:#d6cdde;white-space:nowrap}
+.lh-result.hit{background:#1c3a2a;color:#8ee6b0}.lh-result.miss{background:#40242a;color:#f5a3ad}.lh-result.push{background:#3d3520;color:#f2cf73}
+
+/* Games. */
+.lh-games{display:grid;grid-template-columns:repeat(auto-fill,minmax(12rem,1fr));gap:.55rem}
+.lh-game{display:grid;gap:.4rem;padding:.75rem .85rem;border-radius:.3rem .75rem .75rem .3rem;background:linear-gradient(120deg,color-mix(in srgb,var(--club) 13%,#1b1c21),#1b1c21 60%);box-shadow:inset 3px 0 var(--club)}
+.lh-game:hover{background:linear-gradient(120deg,color-mix(in srgb,var(--club) 22%,#1b1c21),#22232a 60%)}
+.lh-game>small{font-size:.72rem;color:#a399ad}
+.lh-side{display:flex;align-items:center;gap:.45rem;font-size:1rem;color:#bdb3c7}
+.lh-side .team-logo{width:1.35rem;height:1.35rem;object-fit:contain}
+.lh-side b{font-weight:650}
+.lh-side i{margin-left:auto;font-style:normal;font-weight:750;font-variant-numeric:tabular-nums}
+.lh-side.is-pick{color:#fff}.lh-side.is-pick b{font-weight:800}
+.lh-game>em{display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding-top:.45rem;border-top:1px solid #ffffff14;font-style:normal;font-size:.76rem;color:#c3b9cd}
+.lh-note{margin:0;font-size:.76rem;color:#948b9e}
+
+@keyframes lh-pulse{50%{opacity:.25}}
+@media(max-width:900px){.lh-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){
+  .lh-tiles{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 .6rem}
+  .lh-tile:first-child{grid-column:1/-1}
+  .lh-tile b{font-size:2rem}
+  .lh-games{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lh-side{font-size:.92rem}
+}
+@media(prefers-reduced-motion:reduce){.lh-live::before{animation:none}.lh-tile{transition:none}}
