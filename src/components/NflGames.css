@@ -211,3 +211,6 @@
 
 .nfl-games .nfl-week-control .filter-trigger { height: 44px; }
 .nfl-games .nfl-week-control .filter-trigger span { white-space: nowrap; }
+
+.slate-fixture b.no-edge {color:#a99db3}
+.slate-fixture b.has-edge {color:#8ee6b0}

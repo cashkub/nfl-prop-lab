@@ -3,6 +3,7 @@ import NflToolHeader from './NflToolHeader.jsx';
 import React,{useMemo,useState} from 'react';
 import {availableStats} from '../lib/availableStats.js';
 import {playerAverageLine,quotedPlayers,matchupBook,fairSideProbability,priceText} from '../lib/bookLine.js';
+import {breakEven} from '../lib/gamePicks.js';
 import {defenseTable} from '../lib/matchup.js';
 import {getPlayerGames,formatRate,isHit,summarize,estimateModelHitRate} from '../lib/stats.js';
 import {teamColor} from '../lib/teamColors.js';
@@ -14,6 +15,8 @@ import PropPlayerFilter from './PropPlayerFilter.jsx';
 import ChartSelect from './ChartSelect.jsx';
 import PlayerPhoto from './PlayerPhoto.jsx';
 import './NflPropList.css';
+
+const MIN_EDGE_GAMES=4;
 
 function LastFive({row,side}) {
   return <span className="last-five" aria-label="Last five games, oldest to newest">{row.lastFive.map(game=>{
@@ -67,10 +70,19 @@ export default function NflPropList({players,roster,schedule,season,books,market
         const opponent=({LAR:'LA',WAS:'WSH',JAX:'JAC'})[game.opponent];
         const defense=table.find(d=>d.team===game.opponent)??table.find(d=>d.team===opponent);
         const modelEstimate=estimateModelHitRate(recent,metric,point,side,{marketProbability:fairSideProbability(quote,side,point)});
-        result.push({player,game,metric,point,quote,status,lastFive:recent.slice(-5),summary:summarize(recent,metric,point,side),modelEstimate,rank:defense?.rank,teams:table.length});
+        const price=quote?.anytime?quote.over:quote?.[side];
+        const needed=Number(quote?.point)===Number(point)||quote?.anytime?breakEven(price):null;
+        // The general prop model isn't calibrated for anytime TDs or tiny samples, so no edge there.
+        const edge=needed!=null&&!quote?.anytime&&modelEstimate.sample>=MIN_EDGE_GAMES&&Number.isFinite(modelEstimate.rate)?modelEstimate.rate-needed:null;
+        result.push({player,game,metric,point,quote,status,lastFive:recent.slice(-5),summary:summarize(recent,metric,point,side),modelEstimate,needed,edge,rank:defense?.rank,teams:table.length});
       }
     }
-    return result.sort((a,b)=>Number(!!b.quote)-Number(!!a.quote) || b.summary.rate-a.summary.rate || b.summary.total-a.summary.total || a.player.name.localeCompare(b.player.name));
+    // Sportsbook lines first, ranked by model edge over the price's break-even rate.
+    // Without a price, use the model estimate, which already shrinks small samples
+    // (a 1-for-1 player no longer outranks an 8-for-9 player).
+    const model=r=>Number.isFinite(r.modelEstimate.rate)?r.modelEstimate.rate:-1;
+    return result.sort((a,b)=>Number(!!b.quote)-Number(!!a.quote) || Number(b.edge!=null)-Number(a.edge!=null) ||
+      (a.edge!=null?b.edge-a.edge:model(b)-model(a)) || b.summary.total-a.summary.total || a.player.name.localeCompare(b.player.name));
   },[players,roster,season,books,markets,now,slate.week,slate.game,slate.team,future,market,side,venue]);
   const matches=rows.filter(r=>r.summary.total>=Number(minimum) && (source==='ALL' || (source==='book')===!!r.quote) && r.player.name.toLowerCase().includes(search.trim().toLowerCase()));
   const choices=[...new Map(matches.map(r=>[r.player.id,r.player])).values()].sort((a,b)=>a.name.localeCompare(b.name) || a.team.localeCompare(b.team));
@@ -80,10 +92,10 @@ export default function NflPropList({players,roster,schedule,season,books,market
     {label:'Player',value:r=>r.player.name,render:r=><button type="button" className="prop-chart-link"
       disabled={!r.player.games?.length} aria-label={'Open Charts for '+r.player.name+', '+side+' '+r.point+' '+markets[r.metric].label} onClick={()=>onOpen(r,side,venue)}>
       <PlayerPhoto id={r.player.id} name={r.player.name} url={r.player.photo}/><b>{r.player.name}{r.status?` · ${r.status}`:''}</b><span className="prop-charts-tag">Charts</span></button>},
-    {label:'Market',value:r=>r.quote?.anytime?'Anytime TD':markets[r.metric].label},
-    {label:'Line',value:r=>r.point,render:r=><strong className="prop-point">{r.quote?.anytime?'Yes':side} {r.quote?.anytime?'':r.point}</strong>},
-    {label:'Historical Hit Rate',value:r=>r.summary.rate,highFirst:true,render:r=><b style={rateStyle(r.summary.rate)}>{formatRate(r.summary.rate)}</b>},
-    {label:'Model Estimate',value:r=>r.modelEstimate.rate,highFirst:true,render:r=><span className="model-rate-cell"><b style={rateStyle(r.modelEstimate.rate)}>{formatRate(r.modelEstimate.rate)}</b><small>MODEL · {r.modelEstimate.sample} G</small></span>},
+    {label:'Prop',value:r=>(r.quote?.anytime?'Anytime TD':markets[r.metric].label)+' '+r.point,render:r=><span className="prop-cell"><strong className="prop-point">{r.quote?.anytime?'Yes':side} {r.quote?.anytime?'':r.point}</strong><small>{r.quote?.anytime?'Anytime TD':markets[r.metric].label}</small></span>},
+    {label:'Model',value:r=>r.modelEstimate.rate,highFirst:true,render:r=><span className="model-rate-cell"><b style={rateStyle(r.modelEstimate.rate)}>{formatRate(r.modelEstimate.rate)}</b><small>{r.modelEstimate.sample} games</small></span>},
+    {label:'Edge',value:r=>r.edge,highFirst:true,render:r=>r.edge==null?<span className="edge-cell muted" title={r.quote?.anytime?'Edge is not shown for anytime TDs':'Needs a matching DraftKings price and 4+ games'}>—</span>:<span className={`edge-cell ${r.edge>=.02?'pos':r.edge<=-.02?'neg':''}`}><b>{r.edge>0?'+':''}{(r.edge*100).toFixed(1)}</b><small>needs {formatRate(r.needed)}</small></span>},
+    {label:'Hit Rate',value:r=>r.summary.rate,highFirst:true,render:r=><b style={rateStyle(r.summary.rate)}>{formatRate(r.summary.rate)}</b>},
     {label:'Last 5',value:r=>summarize(r.lastFive,r.metric,r.point,side).rate,highFirst:true,render:r=><LastFive row={r} side={side}/>},
     {label:'Hits',value:r=>r.summary.hits,highFirst:true,render:r=>r.summary.hits+'/'+r.summary.total},
     {label:'Odds',value:r=>r.quote?.[side]??null,highFirst:true,render:r=>priceText(r.quote?.[side])},
@@ -95,7 +107,7 @@ export default function NflPropList({players,roster,schedule,season,books,market
   ];
   return <main className="chart-lab prop-list">
     <NflToolHeader active="props"/>
-    {loading || error?<p>{error || 'Loading Player Props…'}</p>:<>
+    {loading || error?<p>{error || 'Loading player props…'}</p>:<>
       <div className="prop-list-filters prop-primary">
         <WeekAndMatchup slate={slate}/>
         <PropPlayerFilter choices={choices} value={activeId} query={search}
@@ -113,7 +125,7 @@ export default function NflPropList({players,roster,schedule,season,books,market
         <ChartSelect label="Side" value={side} onChange={setSide}><option value="over">Over</option><option value="under">Under</option></ChartSelect>
       </div>
       </details>
-      <p className="prop-list-note">{filtered.length} Props · {sort ? 'Sorted By '+columns[sort.column].label+(sort.asc?' (Ascending)':' (Descending)') : 'Sportsbook Lines First, Then Highest Hit Rate'}. Tap A Header To Sort Or Open A Player’s Charts.</p>
+      <p className="prop-list-note">{filtered.length} props · {sort ? 'sorted by '+columns[sort.column].label.toLowerCase()+(sort.asc?' (low to high)':' (high to low)') : 'DraftKings lines first, biggest model edge on top'}. Tap a header to sort, or a player to open their charts.</p>
       {filtered.length>0 && <div className="history-scroll prop-table-scroll" role="region" aria-label="Sortable NFL Prop List" tabIndex="0">
         <SortableTable quietSort className="prop-research-table" headers={columns.map(c=>c.label)} rows={filtered} limit={limit}
           values={r=>columns.map(c=>c.value(r))} sort={sort} onSort={setSort}
@@ -122,8 +134,8 @@ export default function NflPropList({players,roster,schedule,season,books,market
             {columns.map(c=><td key={c.label}>{c.render?c.render(r):c.value(r)}</td>)}
           </tr>}/>
       </div>}
-      {filtered.length>0 && <p className="prop-list-note">Historical Hit Rates Use Up To 10 Prior {venue==='H'?'Home Games':venue==='A'?'Away Games':'Games'} This Season. Model Estimates Recalculate For Each Line From Prior Results And Projection; Sportsbook Odds Count Only When They Match The Listed Line. Last 5 Runs Oldest To Newest · Green = Hit · Red = Miss · Gold = Push.</p>}
-      {!filtered.length && <p>No Upcoming Props Match These Filters.</p>}
+      {filtered.length>0 && <p className="prop-list-note">Edge = model chance minus the chance the DraftKings price needs to break even, in percentage points. Green means the model beats the price by 2+ points. Edge needs 4+ games and isn't shown for anytime TDs. Hit rates use up to 10 prior {venue==='H'?'home games':venue==='A'?'away games':'games'} this season. Last 5 runs oldest to newest · green = hit · red = miss · gold = push.</p>}
+      {!filtered.length && <p>No upcoming props match these filters.</p>}
       {filtered.length>limit && <button className="prop-list-more" onClick={()=>setLimit(limit+24)}>Show More Props</button>}
     </>}
   </main>;

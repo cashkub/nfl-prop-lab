@@ -53,3 +53,20 @@
 .last-five-game[data-result=Miss] i{background:#f17b84;box-shadow:0 0 7px #f17b8480}
 .last-five-game[data-result=Push]{border-color:#dfb96270;background:linear-gradient(155deg,#302b1f,#202127 75%)}
 .last-five-game[data-result=Push] i{background:#f2c75f;box-shadow:0 0 7px #f2c75f80}
+
+.prop-cell{display:grid;justify-items:center;gap:.1rem;line-height:1.15}
+.prop-cell>small{font-size:.66rem;color:#b9a9c7;white-space:nowrap}
+.edge-cell{display:grid;justify-items:center;gap:.1rem;line-height:1.1;color:#d9d3df}
+.edge-cell>small{font-size:.58rem;color:#a99db3;white-space:nowrap}
+.edge-cell.pos b{color:#8ee6b0}
+.edge-cell.neg b{color:#f19aa8}
+.edge-cell.muted{color:#7d7386}
+@media(max-width:680px){
+  .prop-research-table{font-size:.78rem}
+  .prop-table-scroll .prop-research-table :is(th,td){padding:.25rem .32rem}
+  .prop-chart-link{grid-template-columns:1.5rem 4.9rem;grid-template-rows:auto;gap:.3rem}
+  .prop-chart-link .player-photo{grid-row:auto;width:1.5rem;height:1.5rem}
+  .prop-chart-link b{text-align:left;font-size:.76rem}
+  .prop-charts-tag{display:none}
+  .prop-cell>small{font-size:.6rem}
+}

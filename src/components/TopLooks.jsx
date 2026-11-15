@@ -1,4 +1,5 @@
 import {priceText} from '../lib/bookLine.js';
+import {plainWhy} from '../lib/plainWhy.js';
 import PregameForm from './PregameForm.jsx';
 import {useArchive} from './useArchive.js';
 import {publishedLook} from '../lib/publishedLooks.js';
@@ -89,7 +90,8 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
           <div className="top-pick-main">
             <div className="top-matchup">{!isReplay&&<>{pick.publishedRank?'Published pick':'Pregame preview'} · </>}<TeamLogo team={pick.player.team}/>{pick.player.team} · <TeamLogo team={pick.game.opponent}/>{pick.game.opponent} · {new Date(pick.game.kickoff).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})} ET</div>
             <h2>{pick.player.name}</h2><p>{pick.quote.anytime?(pick.side==='over'?'ANYTIME TD · YES':'ANYTIME TD · NO'):pick.side.toUpperCase()+' '+pick.line+' '+markets[pick.metric]}</p>
-            <div className="pick-meta-row"><small className={'line-origin '+(pick.quote.isBookLine?'sportsbook':'average')}>{pick.quote.anytime?(pick.quote.isBookLine?'DRAFTKINGS ANYTIME TD ODDS':'MODEL ESTIMATE · NO ODDS'):pick.quote.isBookLine?'DRAFTKINGS LINE':'PLAYER AVERAGE LINE'}</small><button className="why-toggle" type="button" aria-expanded={whyOpen} aria-controls={whyId} onClick={()=>setOpenWhy(whyOpen?'':pickKey)}><Info size={14}/>{whyOpen?'Hide Why':'Why This Pick'}<ChevronDown size={14}/></button></div>
+            <p className="pick-plain-why">{plainWhy(pick,markets[pick.metric])}</p>
+            <div className="pick-meta-row"><small className={'line-origin '+(pick.quote.isBookLine?'sportsbook':'average')}>{pick.quote.anytime?(pick.quote.isBookLine?'DRAFTKINGS ANYTIME TD ODDS':'MODEL ESTIMATE · NO ODDS'):pick.quote.isBookLine?'DRAFTKINGS LINE':'PLAYER AVERAGE LINE'}</small><button className="why-toggle" type="button" aria-expanded={whyOpen} aria-controls={whyId} onClick={()=>setOpenWhy(whyOpen?'':pickKey)}><Info size={14}/>{whyOpen?'Hide details':'Full breakdown'}<ChevronDown size={14}/></button></div>
             <div className="top-pregame-form"><small>PRE-GAME FORM <span>· Last {Math.min(5,pick.recent.length)} games</span></small>
               <PregameForm values={pick.recent} line={pick.line} side={pick.side} touchdown={pick.quote.anytime} label={markets[pick.metric]}/>
             </div>

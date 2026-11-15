@@ -66,10 +66,11 @@ body:has(.chart-lab){background:#111316 url('/preview/assets/playbook.svg') cent
 .margin-bars [aria-pressed=true] .bar-space{background-color:#341946}
 .margin-bars .chart-rank{border:1px solid currentColor;border-radius:4px;padding:.18rem .36rem;font-size:.68rem;font-weight:750;letter-spacing:.035em}
 .chart-lab .defense-note{border-left:2px solid #9873b1;padding:.4rem .65rem;font-size:.82rem;color:#cdb9da}
-.chart-lab :is(h1,h2,h3,dt,th,label,button,small,.player-next,.plot-heading,.line-control,.game-volume,.chart-slate,.lab-controls,.margin-detail){text-transform:capitalize}
+/* Headings and buttons stay title case; body labels read in normal sentence case. */
+.chart-lab :is(h1,h2,h3,th,button){text-transform:capitalize}
 .kickoff-conditions{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:.7rem;margin:.8rem 0}
 .kickoff-conditions>div{display:grid;gap:.25rem;padding:.75rem;border:1px solid #5a3b6e;background:#2c153c;border-radius:.5rem}
-.kickoff-conditions small,.kickoff-conditions span{color:#ceb8dd;text-transform:capitalize}
+.kickoff-conditions small,.kickoff-conditions span{color:#ceb8dd}
 .log-outcome{color:var(--outcome,#d7bde8);border:1px solid color-mix(in srgb,currentColor 55%,transparent);border-radius:1rem;padding:.15rem .5rem;font-size:.72rem;font-weight:750}
 .log-body{padding:.1rem .85rem .8rem;border-top:1px solid #4a305c}.log-body p{font-size:.82rem}
 .chart-lab .log-body dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;margin-top:.5rem}.chart-lab .log-body dl>div{display:block;border:0;border-radius:.3rem;background:#311b40;padding:.45rem}
@@ -379,3 +380,8 @@ html:has(.chart-lab){background:#111316}
   .nfl-tool-header nav a{transition:border-color .15s,transform .15s}
   .nfl-tool-header nav a:active{transform:translateY(1px)}
 }
+
+/* Player card: name and numbers each get a full row so long names don't wrap. */
+.chart-lab .lab-player{grid-template-columns:1fr}
+.player-numbers b.edge-pos{color:#8ee6b0}.player-numbers b.edge-neg{color:#f19aa8}.player-numbers b.edge-none{color:#8b8194}
+.chart-lab{max-width:76rem}

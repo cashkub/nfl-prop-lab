@@ -42,6 +42,8 @@ for(const [date,games] of slates)for(const type of ['props','anytime']){
   if(previous.some(r=>r.result||Date.parse(r.kickoff)<=now))continue;
   const picks=buildTopLooks({players:data.players,slate:games,books,season,type});
   for(const row of previous)archive.splice(archive.indexOf(row),1);
+  // Keep the first published line/price so we can tell whether the market later moved toward the pick.
+  const firstSeen=new Map(previous.map(r=>[r.id,{line:r.openLine??r.line,price:r.openPrice??r.price,saved:r.openSaved??r.saved}]));
   picks.forEach((pick,index)=>{
     const {player,game,quote}=pick;
     const kind=type==='anytime'?'touchdown':'prop';
@@ -52,8 +54,9 @@ for(const [date,games] of slates)for(const type of ['props','anytime']){
       totals:[0,1,2].map(i=>covered.reduce((sum,row)=>sum+(Number(row.scoringChances[i])||0),0))
     }:null;
     const roleDetail=[pick.usageKey+' share '+(Number.isFinite(pick.share.average)?(pick.share.average*100).toFixed(1)+'%':'unavailable'),pick.usageTrend==null?null:'recent volume '+(pick.usageTrend>0?'+':'')+pick.usageTrend.toFixed(1)].filter(Boolean).join(' · ');
+    const id=[game.id,player.id,pick.metric,pick.side,'v2'].join('|'),first=firstSeen.get(id);
     archive.push({
-      id:[game.id,player.id,pick.metric,pick.side,'v2'].join('|'),kind,gameId:game.id,kickoff:game.kickoff,date,
+      id,kind,gameId:game.id,kickoff:game.kickoff,date,
       away:game.away,home:game.home,awayName:game.awayName,homeName:game.homeName,week:game.week,postseason:game.postseason,
       season,colors:game.colors,player:player.name,playerId:player.id,position:player.position,photo:player.photo,team:player.team,
       metric:pick.metric,label:kind==='touchdown'?'Anytime Touchdown':pick.market.label,line:pick.line,side:pick.side,
@@ -67,6 +70,7 @@ for(const [date,games] of slates)for(const type of ['props','anytime']){
       look:{recentHits:pick.recentHits,recent:pick.recent,matchup:pick.matchup,matchupTone:pick.matchupTone,
         defense:pick.defense,volumeSignal:pick.volumeSignal,fairSide:pick.fairSide,quote:pick.quote},
       locksAt:new Date(Math.min(...games.map(g=>Date.parse(g.kickoff)))).toISOString(),
+      openLine:first?first.line:pick.line,openPrice:first?first.price:(Number.isFinite(price)?price:null),openSaved:first?first.saved:saved,
       snapshotVersion:2,model:'2026.11.v2',saved
     });
   });

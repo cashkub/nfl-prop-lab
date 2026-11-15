@@ -7,10 +7,15 @@ import RecordHeader from './RecordHeader.jsx';
 import PlayerPhoto from './PlayerPhoto.jsx';
 import {recordPeriod,periodLabel} from '../lib/recordWeeks.js';
 import {priceText} from '../lib/bookLine.js';
+import {lineMove,lineMoveSummary} from '../lib/lineMove.js';
 import {teamColor} from '../lib/teamColors.js';
 import './ModelRecordPicks.css';
 
-const dateLabel=new Intl.DateTimeFormat('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'});
+// Kickoffs are stored in UTC; show the Eastern date so Monday night games don't read as Tuesday.
+const dateLabel=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',year:'numeric'});
+const dayHeading=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'long',month:'short',day:'numeric'});
+const slateDay=r=>r.date||(Number.isFinite(Date.parse(r.kickoff))?new Date(Date.parse(r.kickoff)).toLocaleDateString('en-CA',{timeZone:'America/New_York'}):'');
+const slateHeading=r=>{const t=Date.parse(r.kickoff);return Number.isFinite(t)?dayHeading.format(new Date(t)):r.date||'Unknown date'};
 const won=r=>r.result==='Hit';
 const decided=r=>r.result==='Hit'||r.result==='Miss';
 const rate=rows=>{const graded=rows.filter(decided);return graded.length?graded.filter(won).length/graded.length:null};
@@ -24,6 +29,13 @@ const recentResults=r=>Array.isArray(r.values)?r.values.slice(-5):[];
 
 function SummaryTile({icon:Icon,label,value,detail,tone=''}){
   return <article className={`mr-stat ${tone}`}><span className="mr-stat-icon"><Icon size={17}/></span><div><small>{label}</small><strong>{value}</strong><em>{detail}</em></div></article>;
+}
+
+function moveText(move){
+  if(!move)return null;
+  if(move.direction==='none')return 'No line move since publish';
+  const what=move.kind==='line'?`${move.from} → ${move.to}`:`${priceText(move.from)} → ${priceText(move.to)}`;
+  return `${move.direction==='with'?'Market moved our way':'Market moved against'} · ${what}`;
 }
 
 function RecordPick({row}){
@@ -46,12 +58,14 @@ function RecordPick({row}){
     </button>
     <div className="mr-pick-glance">
       <span className="mr-glance-date"><CalendarDays size={13}/>{Number.isFinite(kickoff)?dateLabel.format(new Date(kickoff)):row.date||'—'} · {recordPeriod(row,'nfl') ? periodLabel(recordPeriod(row,'nfl'),'nfl') : 'NFL'} · {locked?'Locked':'Pregame'}{!locked && Number.isFinite(published)?' · updated '+new Date(published).toLocaleString():''}</span>
+      {lineMove(row)&&lineMove(row).direction!=='none'&&<span className={`mr-line-move ${lineMove(row).direction}`}>{moveText(lineMove(row))}</span>}
       <span className="mr-glance-form"><small>PRE-GAME FORM</small><PregameForm values={row.values} line={row.line} side={row.side} touchdown={row.kind==='touchdown'} label={row.label}/></span>
       <span className="mr-glance-prediction"><small>MODEL EST. HIT RATE</small><b>{rateText(row.modelHitRate)} <i>V2 estimate · {observed==null?'prior rate —':`${rateText(observed)} observed · ${row.hits??'—'}/${row.total||history.length||'—'}`}</i></b></span>
     </div>
     {open&&<div className="mr-detail-grid">
       <section className="mr-detail-block"><h3><Activity size={15}/> Pregame Performance</h3><dl>
         <div><dt>Line At Publish</dt><dd>{row.kind==='touchdown'?'0.5 TD':`${row.side||'—'} ${row.line??'—'} ${row.label||''}`}</dd></div>
+        {row.openLine!=null&&<div><dt>First Published</dt><dd>{row.kind==='touchdown'?'Anytime TD':`${row.side||''} ${row.openLine}`}{row.openPrice!=null?` · ${priceText(row.openPrice)}`:''} <small>{moveText(lineMove(row))}</small></dd></div>}
         <div><dt>Sportsbook Price</dt><dd>{row.price==null?'Unavailable':priceText(row.price)}</dd></div>
         <div><dt>Break-Even Rate</dt><dd>{breakeven==null?'—':rateText(breakeven)}</dd></div>
         <div><dt>Model Estimated Hit Rate</dt><dd>{rateText(row.modelHitRate)} <small>Version 2 estimate saved before kickoff</small></dd></div>
@@ -94,7 +108,7 @@ export default function ModelRecordPicks({rows=[],kind='props',emptyMessage=''})
     const text=`${r.player} ${r.team} ${r.home} ${r.away} ${label}`.toLowerCase();
     const positionValue=String(r.position||'Unknown').toUpperCase(),sideValue=r.kind==='touchdown'?'Yes':String(r.side||'').toLowerCase()==='under'?'Under':'Over';
     return (selectedPeriod==='all'||recordPeriod(r,'nfl')===selectedPeriod)&&(market==='all'||label===market)&&(status==='all'||(r.result||'Pending')===status)&&(source==='all'||sourceType(r)===source)&&(position==='all'||positionValue===position)&&(side==='all'||sideValue===side)&&(!query||text.includes(query.toLowerCase().trim()));
-  }).sort((a,b)=>Date.parse(b.kickoff)-Date.parse(a.kickoff)||(a.rank||99)-(b.rank||99)),[picks,selectedPeriod,market,status,source,position,side,query]);
+  }).sort((a,b)=>slateDay(b).localeCompare(slateDay(a))||(a.rank||99)-(b.rank||99)),[picks,selectedPeriod,market,status,source,position,side,query]);
   const hits=filtered.filter(r=>r.result==='Hit').length,misses=filtered.filter(r=>r.result==='Miss').length;
   const pending=filtered.filter(r=>(r.result||'Pending')==='Pending').length,push=filtered.filter(r=>r.result==='Push').length,noStat=filtered.filter(r=>r.result==='No Stat').length;
   const allTimeHits=picks.filter(r=>r.result==='Hit').length,allTimeMisses=picks.filter(r=>r.result==='Miss').length;
@@ -106,6 +120,7 @@ export default function ModelRecordPicks({rows=[],kind='props',emptyMessage=''})
   const weekPending=weekRows.filter(r=>(r.result||'Pending')==='Pending').length;
   const weekPush=weekRows.filter(r=>r.result==='Push').length;
   const weekNoStat=weekRows.filter(r=>r.result==='No Stat').length;
+  const moves=lineMoveSummary(weekRows);
   const periodTitle=selectedPeriod==='all'?'All Weeks':periodLabel(selectedPeriod,'nfl');
   return <div className="model-record-picks">
     <RecordHeader title={kind==='touchdowns'?'ANYTIME TOUCHDOWN':'PLAYER PROP'} icon={kind==='touchdowns'?Target:TrendingUp}>
@@ -118,6 +133,7 @@ export default function ModelRecordPicks({rows=[],kind='props',emptyMessage=''})
       <SummaryTile icon={TrendingUp} label="ALL-TIME HIT RATE" value={rate(picks)==null?'—':rateText(rate(picks))} detail="Official V2 locks · pending excluded" tone={rate(picks)==null?'':rate(picks)>=.55?'green':'red'}/>
       <SummaryTile icon={Target} label={`${periodTitle.toUpperCase()} RECORD`} value={`${weekHits}–${weekMisses}`} detail={`${weekHits+weekMisses} graded · ${weekPush} push · ${weekNoStat} no stat · ${weekPending} pending`} tone="purple"/>
       <SummaryTile icon={Shield} label={`${periodTitle.toUpperCase()} HIT RATE`} value={rate(weekRows)==null?'—':rateText(rate(weekRows))} detail="Selected week · pending excluded" tone={rate(weekRows)==null?'':rate(weekRows)>=.55?'green':'red'}/>
+      {moves.total>0&&<SummaryTile icon={Activity} label="LINE MOVED OUR WAY" value={`${moves.with} of ${moves.total}`} detail="Picks where the line or price moved toward our side after publishing · an early sign of a sharp pick" tone={moves.with/moves.total>=.5?'green':'red'}/>}
     </div>
     <section className="mr-archive">
       <div className="mr-section-title"><div><span className="mr-eyebrow">PICK ARCHIVE</span><h2>PUBLISHED PICKS</h2></div><span className="mr-count">{filtered.length} RECORDS</span></div>
@@ -130,7 +146,9 @@ export default function ModelRecordPicks({rows=[],kind='props',emptyMessage=''})
         <label className="mr-search"><Search size={16}/><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search player, team, market…" aria-label="Search picks"/></label>
       </div>
       <div className="mr-totals"><strong><i>{hits} HIT</i><b>{misses} MISS</b><span>{push} PUSH</span><em>{pending} PENDING</em></strong><small>Hit rate counts only graded wins and losses. Pushes, no-stat games, and pending picks are excluded.</small></div>
-      <div className="mr-pick-list">{filtered.length?filtered.map((row,index)=><RecordPick row={row} key={`${row.gameId}-${row.playerId}-${row.metric}-${row.rank}-${index}`}/>):<div className="mr-empty">No archived picks match this selection.</div>}</div>
+      <div className="mr-pick-list">{filtered.length?filtered.map((row,index)=><React.Fragment key={`${row.gameId}-${row.playerId}-${row.metric}-${row.rank}-${index}`}>
+        {(index===0||slateDay(filtered[index-1])!==slateDay(row))&&<h3 className="mr-day-heading">{slateHeading(row)}<small>{filtered.filter(r=>slateDay(r)===slateDay(row)).length} picks · ranked for this day</small></h3>}
+        <RecordPick row={row}/></React.Fragment>):<div className="mr-empty">No archived picks match this selection.</div>}</div>
 
     </section>
   </div>;

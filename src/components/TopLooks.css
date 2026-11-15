@@ -79,3 +79,5 @@
 .top-pregame-form>small span {font-weight:500; color:#b7aebe; letter-spacing:normal}
 .top-pregame-form .record-form {height:27px; justify-content:flex-start}
 .top-pregame-form .record-form-game b {font-size:.67rem}
+
+.top-pick-main .pick-plain-why{margin:.35rem 0 .45rem;font-size:.82rem;line-height:1.45;font-weight:500;color:#ddd3e6;text-transform:none;letter-spacing:0}

@@ -4,11 +4,12 @@ import {marketSnapshot,gameResult} from '../src/lib/gamePicks.js';
 import {publishedLook} from '../src/lib/publishedLooks.js';
 
 const game={id:'g',home:'NYG',away:'WAS',homeSpread:-2.5,totalLine:41,homePrice:-142,homeSpreadPrice:-110,overPrice:-115,
-  context:{elo:{homeProbability:.6,awayProbability:.4}}};
+  context:{elo:{homeProbability:.65,awayProbability:.35}}};
 const model={a:{score:19},h:{score:24}};
 test('archives the Games side, signed line, and price and grades against away/home finals',()=>{
   const markets=marketSnapshot(game,model);
-  assert.deepEqual(markets,{moneyline:{side:'NYG',price:-142,probability:.6},spread:{side:'NYG',line:-2.5,price:-110},total:{side:'OVER',line:41,price:-115}});
+  assert.equal(markets.moneyline.edge.toFixed(3),(.65-142/242).toFixed(3));delete markets.moneyline.edge;
+  assert.deepEqual(markets,{moneyline:{side:'NYG',price:-142,probability:.65},spread:{side:'NYG',line:-2.5,price:-110},total:{side:'OVER',line:41,price:-115}});
   const row={...game,markets,final:[20,21]};
   assert.deepEqual(['moneyline','spread','total'].map(k=>gameResult(row,k)),['Win','Loss','Push']);
   assert.equal(gameResult({...row,final:null},'spread'),'Pending');
@@ -22,4 +23,12 @@ test('published Top Looks use exactly the archived market, side, line, price, an
   const row={date:'2026-11-12',gameId:'g',playerId:'p',player:'Player',team:'WAS',away:'WAS',home:'NYG',metric:'rushingYards',side:'under',line:29.5,rank:2,look:{quote:{under:-110}},values:[21,34]};
   const look=publishedLook(row,[],[game]);
   assert.deepEqual([look.player.name,look.game.opponent,look.metric,look.side,look.line,look.quote.under,look.publishedRank],['Player','NYG','rushingYards','under',29.5,-110,2]);
+});
+
+test('moneyline is only picked when the model beats the price break-even',()=>{
+  const fav={...game,homePrice:-175,awayPrice:150,context:{elo:{homeProbability:.591,awayProbability:.409}}};
+  assert.equal(marketSnapshot(fav,model).moneyline,undefined);
+  const dog={...fav,context:{elo:{homeProbability:.5,awayProbability:.5}}};
+  assert.equal(marketSnapshot(dog,model).moneyline.side,'WAS');
+  assert.equal(marketSnapshot({...game,homePrice:null},model).moneyline,undefined);
 });

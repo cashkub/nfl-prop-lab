@@ -7,6 +7,7 @@ import ChartSelect from './ChartSelect.jsx';
 import React,{useMemo,useState} from 'react';
 import {METRICS,getPlayerGames,filteredWindow,summarize,formatNumber,formatRate,estimateModelHitRate} from '../lib/stats.js';
 import {fairSideProbability,priceText,usageFor} from '../lib/bookLine.js';
+import {breakEven} from '../lib/gamePicks.js';
 import {defenseTable} from '../lib/matchup.js';
 import {DefenseRank,rateStyle} from './HitRate.jsx';
 import {teamColor} from '../lib/teamColors.js';
@@ -241,6 +242,8 @@ export default function NflCharts({players,seasons,slate,venue,onVenue,resetLine
   const current=summarize(displayed,metric,line,direction);
   const marketProbability=fairSideProbability(quote,direction,line);
   const modelRate=estimateModelHitRate(displayed,metric,line,direction,{marketProbability});
+  // Same rule as Prop Lists: no edge for anytime TDs or fewer than 4 games.
+  const priceNeeded=quote&&!quote.anytime&&metric!=='scoredTDs'&&modelRate.sample>=4&&line!=null&&Number(quote.point)===Number(line)?breakEven(quote[direction]):null;
   const pushes=displayed.filter(g=>g.stats[metric]===line).length;
   const usage=metric==='scrimmageYards'?{key:'opportunities',label:'Carries + targets'}:usageFor(metric);
   const observedUsage=displayed.map(g=>g.usage?.[usage.key]).filter(Number.isFinite);
@@ -273,19 +276,19 @@ export default function NflCharts({players,seasons,slate,venue,onVenue,resetLine
         <div><small>{season} · {player.team} · {player.position}</small><h2>{player.name}</h2><div className="player-prop">
           <strong>{line==null?'No Line Selected':direction+' '+line}</strong><span>{chartMarkets[metric].label}</span>
           {line!=null && <small>{manual?manualLabel:quote?'DraftKings':'Player Average'}</small>}
-          {upcoming && <small className="prop-matchup">Prop Matchup · Week {upcoming.week} · {upcoming.venue==='Away'?'at':'vs.'} {upcoming.opponent}</small>}
+          {upcoming && <small className="prop-matchup">Week {upcoming.week} {upcoming.venue==='Away'?'at':'vs.'} {upcoming.opponent}{Date.parse(upcoming.kickoff)<=Date.now()?' · game has started':''}</small>}
           {!(manual && manualLabel==='Player Average') && quote && line===quote.point && <div className="prop-prices" aria-label="DraftKings odds">
             {['over','under'].map(side=><span key={side} data-selected={side===direction}>{side} <b>{priceText(quote[side])}</b></span>)}
           </div>}
-        </div><div className="player-next">{nextFixture?<><TeamLogo className="chart-logo" team={nextFixture.opponent}/><span><b>Next game</b> · {player.team} {nextFixture.venue==='Away'?'at':'vs.'} {nextFixture.opponent}<br/>{new Date(nextFixture.kickoff).toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',...(nextFixture.timeKnown===false?{}:{hour:'numeric',minute:'2-digit',timeZoneName:'short'})})}{nextFixture.timeKnown===false?' · Time TBD':''}</span></>:<span>No upcoming game scheduled</span>}</div></div>
+        </div>{(!upcoming || (nextFixture && nextFixture.id!==upcoming.id && Date.parse(upcoming.kickoff)<=Date.now())) && <div className="player-next">{nextFixture?<><TeamLogo className="chart-logo" team={nextFixture.opponent}/><span><b>Next game</b> · {player.team} {nextFixture.venue==='Away'?'at':'vs.'} {nextFixture.opponent}<br/>{new Date(nextFixture.kickoff).toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',...(nextFixture.timeKnown===false?{}:{hour:'numeric',minute:'2-digit',timeZoneName:'short'})})}{nextFixture.timeKnown===false?' · Time TBD':''}</span></>:<span>No upcoming game scheduled</span>}</div>}</div>
       </div>
       <div className="player-numbers">
         <div><small>Median</small><b>{formatNumber(current.median)} <small>{chartMarkets[metric].unit}</small></b></div>
-        <div><small>Hit Rate</small>{line==null?<button type="button" onClick={()=>{const input=document.getElementById('chart-line');input.closest('details').open=true;input.focus()}}>Set Custom Line</button>:<><b style={rateStyle(current.rate)}>{formatRate(current.rate)}</b><small>{current.hits} Hits · {current.total-current.hits-pushes} Misses · {pushes} Pushes</small></>}</div>
-        <div><small>Model Projected Hit Rate</small>{line==null?<b>Set A Line</b>:<><b style={rateStyle(modelRate.rate)}>{formatRate(modelRate.rate)}</b><small>Estimate · {modelRate.sample} prior games</small></>}</div>
-        <div><small>Games Shown</small><b>{displayed.length}</b></div>
+        <div><small>Hit rate · last {displayed.length}</small>{line==null?<button type="button" onClick={()=>{const input=document.getElementById('chart-line');input.closest('details').open=true;input.focus()}}>Set Custom Line</button>:<><b style={rateStyle(current.rate)}>{formatRate(current.rate)}</b><small>{current.hits} hit · {current.total-current.hits-pushes} miss{pushes?` · ${pushes} push`:''}</small></>}</div>
+        <div><small>Model chance</small>{line==null?<b>Set a line</b>:<><b style={rateStyle(modelRate.rate)}>{formatRate(modelRate.rate)}</b><small>smoothed · {modelRate.sample} prior games</small></>}</div>
+        <div><small>Edge vs DraftKings</small>{priceNeeded==null||line==null||!Number.isFinite(modelRate.rate)?<><b className="edge-none">—</b><small>{quote&&Number(quote.point)===Number(line)?'needs 4+ games':'no matching price'}</small></>:<><b className={modelRate.rate-priceNeeded>=.02?'edge-pos':modelRate.rate-priceNeeded<=-.02?'edge-neg':''}>{modelRate.rate-priceNeeded>0?'+':''}{((modelRate.rate-priceNeeded)*100).toFixed(1)}</b><small>needs {formatRate(priceNeeded)} at {priceText(quote[direction])}</small></>}</div>
       </div>
-      <details className="model-rate-info"><summary>How The Model Estimate Works</summary><p>It recalculates for the selected line using the same base estimate as Top Looks: smoothed prior results and a weighted season/recent projection. No-vig sportsbook odds are included only when the selected line exactly matches the quote; for alternate or average lines without matching odds, that input stays neutral. Matchup-specific weather, injury, and red-zone signals appear in Top Looks when relevant. The separate Hit Rate is what the player actually did in the selected history.</p></details>
+      <details className="model-rate-info"><summary>How the model chance works</summary><p>It recalculates for the selected line using the same base estimate as Top Looks: smoothed prior results and a weighted season/recent projection. No-vig sportsbook odds are included only when the selected line exactly matches the quote; for alternate or average lines without matching odds, that input stays neutral. Matchup-specific weather, injury, and red-zone signals appear in Top Looks when relevant. The hit rate is what the player actually did in the selected games. Edge is the model chance minus the chance the DraftKings price needs to break even; it only shows when your line matches the posted line.</p></details>
 
     </section>
     <section className="lab-block"><h2>Game By Game</h2>

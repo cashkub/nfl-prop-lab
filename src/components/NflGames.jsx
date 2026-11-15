@@ -174,6 +174,21 @@ export default function NflGames({schedule,books,players,validation,season,now,o
   </section>;
 }
 
+const pct=n=>`${(100*n).toFixed(1)}%`;
+// Compare the model's win chance with the chance the price needs to break even.
+function moneylineNote(moneyline,winner){
+  const side=moneyline.value||moneyline.best;
+  if(!side)return `${pct(winner.probability)} model win · no price posted`;
+  const gap=side.edge*100;
+  return `${side.team} model ${pct(side.probability)} vs ${pct(side.breakEven)} needed (${gap>=0?'+':''}${gap.toFixed(1)})`;
+}
+
+function shortMoneylineNote(moneyline,winner){
+  const side=moneyline.value||moneyline.best;
+  if(!side)return `${winner.team} ${Math.round(100*winner.probability)}% model win`;
+  return `${side.team} model ${Math.round(100*side.probability)}% · needs ${Math.round(100*side.breakEven)}%`;
+}
+
 function WeeklySlate({games,onOpen}){
   const days=new Map();
   for(const game of games){
@@ -185,14 +200,13 @@ function WeeklySlate({games,onOpen}){
     <h2>{day}</h2>
     {fixtures.map(game=>{
       const model=projection(game,game.awayRating,game.homeRating);
-      const {winner,hasWinnerForecast,spreadTeam,spreadLine,spreadEdge,totalSide}=gamePicks(game,model);
-      const winnerPrice=winner?.team===game.home?game.homePrice:game.awayPrice;
+      const {winner,hasWinnerForecast,spreadTeam,spreadLine,spreadEdge,totalSide,moneyline}=gamePicks(game,model);
       const spreadPrice=spreadTeam===game.home?game.homeSpreadPrice:game.awaySpreadPrice;
       const totalPrice=totalSide==='OVER'?game.overPrice:game.underPrice;
       return <button className="slate-fixture" type="button" key={gameKey(game)} onClick={()=>onOpen(gameKey(game))}>
         <span className="slate-pair"><b><span style={{'--club':teamColor(game.away)}}><TeamLogo team={game.away}/>{game.away}</span> @ <span style={{'--club':teamColor(game.home)}}><TeamLogo team={game.home}/>{game.home}</span></b><small>{gameTime(game)}</small></span>
-        <span><small>Moneyline winner</small><b>{winner?winner.team+' '+priceText(winnerPrice):hasWinnerForecast?'Even':'Unavailable'}</b>
-          {winner&&<em>{(100*winner.probability).toFixed(1)}% model win</em>}</span>
+        <span><small>Moneyline</small><b className={moneyline.value?'has-edge':'no-edge'}>{moneyline.value?moneyline.value.team+' '+priceText(moneyline.value.price):moneyline.priced?'No edge':winner?winner.team+' (no price)':hasWinnerForecast?'Even':'Unavailable'}</b>
+          {winner&&<em>{shortMoneylineNote(moneyline,winner)}</em>}</span>
         <span><small>Spread</small><b>{spreadTeam?spreadTeam+' '+(spreadLine>0?'+':'')+spreadLine:spreadEdge==null?'Unavailable':'No clear side'}</b>
           {spreadTeam&&Number.isFinite(spreadPrice)&&<em>{priceText(spreadPrice)}</em>}</span>
         <span><small>Total</small><b>{totalSide==='OVER'||totalSide==='UNDER'?totalSide+' '+game.totalLine:totalSide||'Unavailable'}</b>
@@ -205,11 +219,11 @@ function WeeklySlate({games,onOpen}){
 
 function GamePredictions({game,model,validation,players,bookGame}){
   const workload=useMemo(()=>({away:teamWorkload(players,game.away,game),home:teamWorkload(players,game.home,game)}),[players,game]);
-  const {elo,margin,projectedTotal,winner,hasWinnerForecast,spreadTeam,spreadLine,spreadEdge,totalSide}=gamePicks(game,model);
+  const {elo,margin,projectedTotal,winner,hasWinnerForecast,spreadTeam,spreadLine,spreadEdge,totalSide,moneyline}=gamePicks(game,model);
   return <div className="nfl-view-panel">
     <div className="nfl-predictions-heading"><div><h3>Model picks</h3></div><span>RESEARCH OUTPUT · NOT A BETTING EDGE</span></div>
     <div className="nfl-pick-grid">
-      <PickTile label="WINNER PROJECTION" team={winner?.team} value={winner?.team||(hasWinnerForecast?'NO CLEAR WINNER':'Forecast unavailable')} detail={winner?`${(winner.probability*100).toFixed(1)}% model win probability · calibrated Elo`:hasWinnerForecast?'Elo probabilities are effectively even.':'No calibrated Elo forecast for this game.'}/>
+      <PickTile label="MONEYLINE VALUE" team={moneyline.value?.team} value={moneyline.value?`${moneyline.value.team} ${priceText(moneyline.value.price)}`:moneyline.priced?'No edge at these prices':winner?.team||(hasWinnerForecast?'NO CLEAR WINNER':'Forecast unavailable')} detail={winner?`Model favorite ${winner.team} wins ${pct(winner.probability)} of the time. ${moneylineNote(moneyline,winner)}.`:hasWinnerForecast?'Elo probabilities are effectively even.':'No calibrated Elo forecast for this game.'}/>
       <PickTile label="SPREAD PICK" team={spreadTeam} value={spreadTeam&&Number.isFinite(spreadLine)?`${spreadTeam} ${spreadLine>0?'+':''}${spreadLine}`:spreadEdge==null?'Spread line unavailable':'No clear side'} detail={Number.isFinite(margin)?`Model margin: ${margin>0?'+':''}${margin.toFixed(1)} points for ${game.home}.`:'Team score projection unavailable.'}/>
       <PickTile label="OVER / UNDER PICK" value={totalSide&&Number.isFinite(game.totalLine)?`${totalSide} ${game.totalLine}`:totalSide||'Total line unavailable'} detail={Number.isFinite(projectedTotal)?`Projected total ${projectedTotal.toFixed(1)} points${Number.isFinite(game.totalLine)?` vs. ${game.totalLine} schedule line`:''}.`:'Team score projection unavailable.'}/>
 
