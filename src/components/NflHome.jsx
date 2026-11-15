@@ -35,7 +35,7 @@ function RecordTile({label,record,href}){
 function PickRows({rows}){
   return <ol className="home-rows">{rows.map(row=><li key={row.id}>
     <span className="home-rank">{row.rank}</span>
-    <PlayerPhoto id={row.playerId} name={row.player} url={row.photo}/>
+    <PlayerPhoto id={row.playerId} name={row.player} url={row.photo} eager/>
     <span className="home-who"><b>{row.player}</b><small>{pickLine(row)}{Number.isFinite(row.price)?<i> · {priceText(row.price)}</i>:null}</small></span>
     {row.result?<em className={'home-result '+tone(row.result)}>{row.result}</em>:null}
     <strong style={rateStyle(row.modelHitRate)}>{formatRate(row.modelHitRate)}</strong>
