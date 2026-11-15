@@ -36,14 +36,21 @@ for(const game of data.schedule||[]){
   slates.get(date).push(game);
 }
 for(const [date,games] of slates)for(const type of ['props','anytime']){
-  if(!games.some(upcoming)||games.some(g=>Date.parse(g.kickoff)<=now)||games.length<(nflGamesPerDate.get(date)||0))continue;
+  // Each game's picks lock at its own kickoff: games already under way keep their
+  // published picks, and only games that have not started are (re)built.
+  const open=games.filter(g=>!g.final&&Date.parse(g.kickoff)>now);
+  if(!open.some(upcoming)||games.length<(nflGamesPerDate.get(date)||0))continue;
   const kind=type==='anytime'?'touchdown':'prop';
   const previous=archive.filter(r=>r.model==='2026.11.v2'&&r.date===date&&r.kind===kind);
-  if(previous.some(r=>r.result||Date.parse(r.kickoff)<=now))continue;
-  const picks=buildTopLooks({players:data.players,slate:games,books,season,type});
-  for(const row of previous)archive.splice(archive.indexOf(row),1);
+  const kept=previous.filter(r=>r.result||Date.parse(r.kickoff)<=now);
+  const replaced=previous.filter(r=>!kept.includes(r));
+  const cap=games.length===1?3:10;
+  const picks=buildTopLooks({players:data.players,slate:open,books,season,type}).slice(0,Math.max(0,cap-kept.length));
+  for(const row of replaced)archive.splice(archive.indexOf(row),1);
   // Keep the first published line/price so we can tell whether the market later moved toward the pick.
-  const firstSeen=new Map(previous.map(r=>[r.id,{line:r.openLine??r.line,price:r.openPrice??r.price,saved:r.openSaved??r.saved}]));
+  const firstSeen=new Map(replaced.map(r=>[r.id,{line:r.openLine??r.line,price:r.openPrice??r.price,saved:r.openSaved??r.saved}]));
+  const takenRanks=new Set(kept.map(r=>r.rank)),freeRanks=[];
+  for(let rank=1;freeRanks.length<picks.length;rank++)if(!takenRanks.has(rank))freeRanks.push(rank);
   picks.forEach((pick,index)=>{
     const {player,game,quote}=pick;
     const kind=type==='anytime'?'touchdown':'prop';
@@ -62,7 +69,7 @@ for(const [date,games] of slates)for(const type of ['props','anytime']){
       metric:pick.metric,label:kind==='touchdown'?'Anytime Touchdown':pick.market.label,line:pick.line,side:pick.side,
       price:Number.isFinite(price)?price:null,priceUpdated:quote.updated||null,breakEven:Number.isFinite(price)?(price<0?Math.abs(price)/(100+Math.abs(price)):100/(100+price)):null,
       lineSource:quote.isBookLine?'sportsbook':'average',isAverageLine:!quote.isBookLine,
-      rank:index+1,score:pick.score,rankScore:pick.rankScore,modelHitRate:pick.chance,projection:pick.projection,
+      rank:freeRanks[index],score:pick.score,rankScore:pick.rankScore,modelHitRate:pick.chance,projection:pick.projection,
       hits:pick.hits,total:pick.history.length,average:pick.average,values:pick.values,defenseRank:pick.defense?.rank||null,rankCount:32,
       role:roleDetail,usageKey:pick.usageKey,usageShare:pick.share,usageTrend:pick.usageTrend,
       scoring:pick.scoring||null,chances,weather:pick.weather||null,injuries:pick.injury.notes,
@@ -70,7 +77,7 @@ for(const [date,games] of slates)for(const type of ['props','anytime']){
       absence:pick.absence||null,tdModel:pick.touchdownModel?'logit.v1':null,context:pick.favoriteReason.detail,
       look:{recentHits:pick.recentHits,recent:pick.recent,matchup:pick.matchup,matchupTone:pick.matchupTone,
         defense:pick.defense,volumeSignal:pick.volumeSignal,fairSide:pick.fairSide,quote:pick.quote},
-      locksAt:new Date(Math.min(...games.map(g=>Date.parse(g.kickoff)))).toISOString(),
+      locksAt:game.kickoff,
       openLine:first?first.line:pick.line,openPrice:first?first.price:(Number.isFinite(price)?price:null),openSaved:first?first.saved:saved,
       snapshotVersion:2,model:'2026.11.v2',saved
     });
