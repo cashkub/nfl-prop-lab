@@ -6,7 +6,7 @@ import {priceText} from '../lib/bookLine.js';
 import {formatRate} from '../lib/stats.js';
 import {rateStyle} from './HitRate.jsx';
 import {teamColor} from '../lib/teamColors.js';
-import {useLiveScores} from './useLiveScores.js';
+import {useLiveNfl} from './useLiveNfl.js';
 import {scoreKey} from '../lib/liveScores.js';
 
 const MODEL='2026.11.v2';
@@ -24,10 +24,11 @@ const tone=result=>({Hit:'hit',Win:'hit',Miss:'miss',Loss:'miss',Push:'push'})[r
 const plural=(n,word)=>`${n} ${word}${n===1?'':'s'}`;
 
 const pickRow=row=>{
-  const status=row.result||(Date.parse(row.kickoff)<=Date.now()?'Started':'');
+  const unit=row.kind==='touchdown'?'TD':'';
+  const status=row.result||(row.live?`Live · ${row.liveActual}${unit?' '+unit:''}`:Date.parse(row.kickoff)<=Date.now()?'Started':'');
   return {id:row.id,rank:row.rank,name:row.player,playerId:row.playerId,photo:row.photo,color:teamColor(row.team),
     pick:row.kind==='touchdown'?'Anytime touchdown':`${row.side==='under'?'Under':'Over'} ${row.line} ${String(row.label||'').toLowerCase()}`,
-    price:Number.isFinite(row.price)?priceText(row.price):'',status,tone:tone(status),
+    price:Number.isFinite(row.price)?priceText(row.price):'',status:row.result&&row.actual!=null&&row.kind!=='touchdown'?`${row.result} · ${row.actual}`:status,tone:row.result?tone(row.result):row.live?'live':'',
     chance:formatRate(row.modelHitRate),chanceStyle:rateStyle(row.modelHitRate),
     support:row.total?`${row.hits} of last ${row.total}`:''};
 };
@@ -46,14 +47,14 @@ const gameRow=(row,scores)=>{
 };
 
 export default function NflHome(){
-  const picks=useArchive('nfl-picks.json'),games=useArchive('model-record.json'),scores=useLiveScores();
+  const picks=useArchive('nfl-picks.json'),games=useArchive('model-record.json'),live=useLiveNfl(),scores=live.scores;
   if(picks.error&&games.error)return <p>Home data is unavailable right now. Use the menu to open a page.</p>;
   if(!picks.rows||!games.rows)return <p>Loading…</p>;
-  const published=picks.rows.filter(r=>r.model===MODEL);
+  const published=picks.rows.filter(r=>r.model===MODEL).map(live.pick);
   const day=featuredDay([...new Set(published.map(r=>r.date))].sort());
   const forDay=kind=>published.filter(r=>r.date===day&&r.kind===kind).sort((a,b)=>a.rank-b.rank);
   const props=forDay('prop'),touchdowns=forDay('touchdown');
-  const saved=games.rows.filter(r=>r.markets);
+  const saved=games.rows.filter(r=>r.markets).map(live.game);
   const gameDay=featuredDay([...new Set(saved.map(r=>dayOf(r.kickoff)))].sort());
   const slate=saved.filter(r=>dayOf(r.kickoff)===gameDay).sort((a,b)=>Date.parse(a.kickoff)-Date.parse(b.kickoff));
   const market=(name,label)=>tally(saved.filter(r=>r.markets[name]),r=>gameResult(r,name),label);

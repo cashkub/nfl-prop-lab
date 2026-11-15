@@ -53,7 +53,7 @@ function RecordPick({row}){
       <span className="mr-photo" style={{'--club':teamColor(row.team)}}><PlayerPhoto id={row.playerId} name={row.player} url={row.photo}/></span>
       <span className="mr-player"><strong>{row.player||'Player'}</strong><small><TeamLogo team={row.team}/>{row.team||'NFL'}{row.position?` · ${row.position}`:''} <i>VS</i> {opponent||'Opponent'}</small></span>
       <span className="mr-bet"><strong>{row.kind==='touchdown'?'ANYTIME TD':`${String(row.side||'').toUpperCase()} ${row.line} ${row.label||row.metric||'Prop'}`}</strong><small>{sourceLabel(row)}{row.price!=null?` · ${priceText(row.price)}`:''}</small></span>
-      <span className="mr-final"><small>{!row.result||row.result==='Pending'?'PENDING':'FINAL'}</small><strong>{statText(row)}</strong><em className={`mr-result ${resultClass(row)}`}>{row.result||'Pending'}</em></span>
+      <span className="mr-final"><small className={row.live||row.provisional?'is-live':''}>{row.live&&!row.result?`LIVE · ${row.liveDetail||''}`:row.provisional?(row.live?'LIVE · LOCKED IN':'FINAL · LIVE'):!row.result||row.result==='Pending'?'PENDING':'FINAL'}</small><strong>{row.live&&!row.result?statText({...row,actual:row.liveActual}):statText(row)}</strong><em className={`mr-result ${resultClass(row)}`}>{row.result||(row.live?'In Progress':'Pending')}</em></span>
       <ChevronDown className="mr-chevron" size={18}/>
     </button>
     <div className="mr-pick-glance">

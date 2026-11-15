@@ -79,3 +79,4 @@
   .lh-side{font-size:.92rem}
 }
 @media(prefers-reduced-motion:reduce){.lh-live::before{animation:none}.lh-tile{transition:none}}
+.lh-result.live{background:#17352a;color:#8ee6b0}

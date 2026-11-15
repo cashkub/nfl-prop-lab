@@ -55,7 +55,7 @@ function GamePick({row,market,rank}){
       <span className="mr-photo mr-team-mark" style={{'--club':teamColor(team)}}><TeamLogo team={team}/></span>
       <span className="mr-player"><strong>{row.away} @ {row.home}</strong><small>{kickoffTime.format(new Date(row.kickoff))}</small></span>
       <span className="mr-bet"><strong>{pickLabel(pick,market)}</strong><small>Sportsbook line{Number.isFinite(pick.price)?` · ${priceText(pick.price)}`:''}</small></span>
-      <span className="mr-final"><small>{final?'FINAL':'PENDING'}</small><strong>{final?final.join('–'):'—'}</strong><em className={`mr-result ${tone(result)}`}>{result}</em></span>
+      <span className="mr-final"><small className={row.provisional?'is-live':''}>{final?(row.provisional?'FINAL · LIVE':'FINAL'):'PENDING'}</small><strong>{final?final.join('–'):'—'}</strong><em className={`mr-result ${tone(result)}`}>{result}</em></span>
       <ChevronDown className="mr-chevron" size={18}/>
     </button>
     <div className="mr-pick-glance">

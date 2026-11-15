@@ -2,6 +2,7 @@ import {priceText} from '../lib/bookLine.js';
 import {plainWhy} from '../lib/plainWhy.js';
 import PregameForm from './PregameForm.jsx';
 import {useArchive} from './useArchive.js';
+import {useLiveNfl} from './useLiveNfl.js';
 import {publishedLook} from '../lib/publishedLooks.js';
 import TeamLogo from './TeamLogo.jsx';
 import React,{useEffect,useMemo,useState} from 'react';
@@ -21,7 +22,8 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
   const todayKey=dayKey(new Date(now).toISOString());
   const current=useMemo(()=>schedule.filter(game=>Date.parse(game.kickoff)>now||dayKey(game.kickoff)===todayKey),[schedule,now,todayKey]);
   const archive=useArchive('nfl-picks.json');
-  const published=useMemo(()=>(archive.rows||[]).filter(r=>r.model==='2026.11.v2'&&r.look),[archive.rows]);
+  const live=useLiveNfl();
+  const published=useMemo(()=>(archive.rows||[]).filter(r=>r.model==='2026.11.v2'&&r.look).map(live.pick),[archive.rows,live]);
   // Finished games leave the schedule, so today's published picks also keep today selectable.
   const days=[...new Set([...current.map(game=>dayKey(game.kickoff)),...published.filter(r=>r.date===todayKey).map(r=>r.date)])].sort();
   const weeks=[...new Set(future.map(game=>String(game.week)))].sort((a,b)=>Number(a)-Number(b));
@@ -99,7 +101,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
             <PlayerPhoto id={pick.player.id} name={pick.player.name} url={pick.player.photo}/>
             <span className="pick-row-who"><b>{pick.player.name}</b><small>{pick.quote.anytime?'Anytime touchdown':`${pick.side==='under'?'Under':'Over'} ${pick.line} ${String(markets[pick.metric]).toLowerCase()}`}{pick.quote.isBookLine&&Number.isFinite(rowPrice)?<i> · {priceText(rowPrice)}</i>:null}</small>
               <small className="pick-row-game"><TeamLogo team={pick.player.team}/>{pick.player.team} vs {pick.game.opponent} · {new Date(pick.game.kickoff).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})}</small></span>
-            <span className="pick-row-chance"><b style={rateStyle(pick.chance)}>{formatRate(pick.chance)}</b><small>{pick.quote.anytime?'to score':'model chance'}</small>{pick.result?<em className={'pick-row-result '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||'')}>{pick.result}</em>:Date.parse(pick.game.kickoff)<=now&&!isReplay?<em className="pick-row-result">Started</em>:null}</span>
+            <span className="pick-row-chance"><b style={rateStyle(pick.chance)}>{formatRate(pick.chance)}</b><small>{pick.quote.anytime?'to score':'model chance'}</small>{pick.result?<em className={'pick-row-result '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||'')}>{pick.result}{pick.actual!=null&&!pick.quote.anytime?' · '+pick.actual:''}</em>:pick.live?<em className="pick-row-result live">Live · {pick.liveActual}{pick.quote.anytime?' TD':''}</em>:Date.parse(pick.game.kickoff)<=now&&!isReplay?<em className="pick-row-result">Started</em>:null}</span>
             <ChevronDown className="pick-row-chevron" size={18}/>
           </button>
           {pickOpen&&<div className="pick-body">

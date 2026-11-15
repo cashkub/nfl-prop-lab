@@ -13,7 +13,7 @@ export function parseScoreboard(payload){
     const points=[Number(away.score),Number(home.score)];
     if(!points.every(Number.isFinite))continue;
     scores.set(scoreKey(away.team?.abbreviation,home.team?.abbreviation),
-      {away:points[0],home:points[1],final:state==='post',detail:state==='post'?'Final':game.status.type.shortDetail||'Live'});
+      {id:String(event.id||''),away:points[0],home:points[1],final:state==='post',detail:state==='post'?'Final':game.status.type.shortDetail||'Live'});
   }
   return scores;
 }

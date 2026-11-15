@@ -68,3 +68,5 @@
 .mr-team-mark img{width:26px;height:26px;object-fit:contain}
 .mr-game-score{color:#f1eaf6;font-size:.74rem;font-weight:700}
 @media(max-width:620px){.mr-team-mark{width:34px;height:34px}.mr-team-mark img{width:22px;height:22px}.mr-game-score{font-size:.64rem}}
+.mr-final small.is-live{color:#8ee6b0!important}
+.mr-live-note{margin:0 0 .8rem;font-size:.78rem;color:#a99db3}
