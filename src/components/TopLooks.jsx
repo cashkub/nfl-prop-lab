@@ -58,7 +58,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
   return <main className="top-looks chart-lab"><NflToolHeader active="top"/>
     <div className="top-looks-heading">
       <div>
-        <p>Player point projections match NFL Games. Top Looks adds line-specific hit rates and matchup signals to rank qualified props.</p></div>
+        <p>{type==='anytime'?'The players most likely to score a touchdown, ranked by the model’s chance to score whatever the price. Players who lost their role are left out; players back from injury stay in.':'Player point projections match NFL Games. Top Looks adds line-specific hit rates and matchup signals to rank qualified props.'}</p></div>
       <span className="slate-count">{picks.length} QUALIFIED</span>
     </div>
     <section className="top-filter panel">
@@ -85,7 +85,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
         const startsReplayDay=isReplay&&(index===0||picks[index-1]?.replayDayDate!==pick.replayDayDate);
         const whyOpen=openWhy===pickKey;
         return <React.Fragment key={(isReplay?'replay-':'')+pick.game.id+pick.player.id+pick.metric+pick.side}>{startsReplayDay&&<div className="replay-day-heading"><strong>{pick.replayDayLabel}</strong><span>{pick.replayGameCount} games · pregame snapshot {new Date(pick.replayAsOf).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} ET</span></div>}<article className="top-pick panel" key={pick.game.id+pick.player.id+pick.metric+pick.side} style={{'--club':teamColor(pick.player.team)||'#a775cf'}}>
-          <div className="pick-rank"><b>{String(displayRank).padStart(2,'0')}</b><small title="Comparative Model Score, Not A Percentage">{pick.rankScore} SCORE</small></div>
+          <div className="pick-rank"><b>{String(displayRank).padStart(2,'0')}</b>{pick.touchdownModel?<small title="Model chance to score a touchdown">{pick.rankScore}% TO SCORE</small>:<small title="Comparative Model Score, Not A Percentage">{pick.rankScore} SCORE</small>}</div>
           <PlayerPhoto id={pick.player.id} name={pick.player.name} url={pick.player.photo}/>
           <div className="top-pick-main">
             <div className="top-matchup">{!isReplay&&<>{pick.publishedRank?'Published pick':'Pregame preview'} · </>}<TeamLogo team={pick.player.team}/>{pick.player.team} · <TeamLogo team={pick.game.opponent}/>{pick.game.opponent} · {new Date(pick.game.kickoff).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})} ET</div>
@@ -107,7 +107,8 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
                 <b>WHY THE MODEL LIKES THIS PICK</b>
                 <div className="pick-reason-grid">
                   <section className="favorite-reason"><strong>TOP REASON · {pick.favoriteReason.label.toUpperCase()}</strong><span>{pick.favoriteReason.detail}</span></section>
-                  <section><strong>RANKING SCORE · {pick.rankScore}/100</strong><span>Ranked #{displayRank} of {displayCount}. This comparative score shows how strongly the available signals support the pick; it is not a hit probability. Tap the information button beside the filters for the full scoring method.</span></section>
+                  {pick.touchdownModel&&<section><strong>RANKING · CHANCE TO SCORE</strong><span>Ranked #{displayRank} of {displayCount} by the model's chance to score, whatever the price. The chance comes from carries and targets, red-zone touches, snap share and position, checked against past seasons.</span></section>}
+                  {!pick.touchdownModel&&<section><strong>RANKING SCORE · {pick.rankScore}/100</strong><span>Ranked #{displayRank} of {displayCount}. This comparative score shows how strongly the available signals support the pick; it is not a hit probability. Tap the information button beside the filters for the full scoring method.</span></section>}
                   <section><strong>HISTORICAL RESULTS</strong><span>{pick.side.toUpperCase()} hit {pick.hits} of {pick.history.length} prior games (<b style={rateStyle(pick.hits/pick.history.length)}>{formatRate(pick.hits/pick.history.length)} prior hit rate</b>); {pick.recentHits} of {pick.recent.length} in the {recentLabel}.</span></section>
                   <section><strong>PROJECTION</strong><span>{projectionReason(pick)}</span></section>
                   {pick.volumeSignal>.1&&<section><strong>{shareLabel.toUpperCase()}</strong><span>{fmtShare(pick.share.average)} of team {pick.usageKey} across {pick.share.count} recent games{pick.share.trend!=null?'; recent share '+(pick.share.trend>0?'+':'')+(pick.share.trend*100).toFixed(1)+' percentage points':''}.</span></section>}

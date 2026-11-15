@@ -110,6 +110,12 @@ function marketShare(player,history,key,teamVolumes){
   return {average:mean(shares),recent:mean(recent),trend:recent.length===3&&previous.length===3?mean(recent)-mean(previous):null,count:shares.length};
 }
 
+// Availability flag from scripts/nfl_availability.py, if it still describes this game.
+function playerAbsence(player,game){
+  const flag=player.availability;
+  if(!flag||Number(flag.season)!==Number(game.season)||Number(game.week)<=Number(flag.asOfWeek))return null;
+  return {status:flag.status,missed:flag.missedWeeks?.length||0,lastPlayedWeek:flag.lastPlayedWeek};
+}
 function playerInjuryStatus(game,player){
   const item=(game.injuries?.[player.team]||[]).find(row=>row.id===player.id||row.name?.toLowerCase()===player.name?.toLowerCase());
   const status=String(item?.gameStatus||'').toLowerCase();
@@ -201,7 +207,8 @@ function makePick(player,game,metric,market,quote,history,defense,side,teamVolum
     : 0;
   const favoriteRedZoneTarget=receiver||(['RB','FB'].includes(player.position)&&targetSignal>carrySignal);
   const primaryShare=favoriteRedZoneTarget?scoring?.targetShare:scoring?.carryShare;
-  const chance=estimateModelHitRate(history,metric,line,side,{marketProbability:fairSide,weatherSignal:weather?.signal||0,redZoneSignal,injurySignal:injury.signal,injuryPenalty}).rate;
+  const estimate=estimateModelHitRate(history,metric,line,side,{marketProbability:fairSide,weatherSignal:weather?.signal||0,redZoneSignal,injurySignal:injury.signal,injuryPenalty,position:player.position});
+  const chance=estimate.rate,touchdownModel=Boolean(estimate.touchdownModel);
   const edge=chance-(fairSide??.5);
   const projectionSignal=clamp((side==='over'?projectionValue-line:line-projectionValue)/(sd||Math.max(1,Math.abs(line)*.2)),-1,1);
   const usageSignal=usageTrend==null?0:clamp(usageTrend/Math.max(1,Math.abs(average)*.12),-1,1)*(side==='over'?1:-1);
@@ -211,7 +218,8 @@ function makePick(player,game,metric,market,quote,history,defense,side,teamVolum
   const isAnytime=metric==='scoredTDs';
   const workloadWeight=isAnytime ? 0.12 : 0.18,redZoneWeight=isAnytime ? 0.06 : 0;
   const score=100*(.38*edge+.22*projectionSignal+.12*defensiveEdge+workloadWeight*volumeSignal+.06*(weather?.signal||0)+redZoneWeight*redZoneSignal+.04*injury.signal);
-  const rankScore=Math.round(clamp(50+score/2,0,100));
+  // Touchdown picks rank by chance to score, so their score is simply that chance.
+  const rankScore=touchdownModel?Math.round(chance*100):Math.round(clamp(50+score/2,0,100));
   const matchup=defenseFit(defense?.rank,32,side,market.label,player.position)|| (defense?.rank?'Defense Rank #'+defense.rank+' of 32':'');
   const matchupTone=defenseTone(defense?.rank,side);
   const weatherSupports=(weather?.signal||0)>.08;
@@ -226,8 +234,11 @@ function makePick(player,game,metric,market,quote,history,defense,side,teamVolum
     {weight:.06,value:weather?.signal||0,label:'Weather',detail:weather?.interpretation||'Forecast data unavailable.'},
     {weight:.04,value:injury.signal,label:'Key Injuries',detail:injury.notes.length?injury.notes[0].impact:'No relevant key-injury signal.'}
   ].filter(reason=>reason.value>0).sort((a,b)=>b.weight*b.value-a.weight*a.value);
-  const favoriteReason=reasons[0]||{label:'Recent Results',detail:`The player hit ${hits} of ${history.length} games at this line.`};
-  return {player,game,metric,market,line,quote,history,defense,side,projection:projectionValue,values,recent,hits,recentHits,chance,fairSide,edge,score,rankScore,usageKey,usageTrend,share,volumeSignal,average,recentAverage,matchup,matchupTone,weather,injury,scoring,redZoneSignal,supportCount,projectionSignal,defensiveEdge,favoriteReason};
+  const touches=mean(history.slice(-3).map(g=>Number(g.usage?.opportunities)||0));
+  const favoriteReason=touchdownModel
+    ? {label:'Scoring Role',detail:`${touches.toFixed(1)} carries + targets per game over the last 3${primaryShare!=null?`, ${fmtShare(primaryShare)} of the team's red-zone ${favoriteRedZoneTarget?'targets':'carries'}`:''}; scored in ${hits} of the last ${history.length} games.`}
+    : reasons[0]||{label:'Recent Results',detail:`The player hit ${hits} of ${history.length} games at this line.`};
+  return {player,game,metric,market,line,quote,history,defense,side,projection:projectionValue,values,recent,hits,recentHits,chance,fairSide,edge,score,rankScore,usageKey,usageTrend,share,volumeSignal,average,recentAverage,matchup,matchupTone,weather,injury,scoring,redZoneSignal,supportCount,projectionSignal,defensiveEdge,favoriteReason,touchdownModel};
 }
 
 function fmtShare(value){return Number.isFinite(value)?(value*100).toFixed(1)+'%':'—';}
@@ -263,11 +274,15 @@ export function buildTopLooks({players,slate,books,season,type}) {
       const history=getPlayerGames(player,'ALL').filter(row=>Number(row.season)<Number(game.season)||
         (Number(row.season)===Number(game.season)&&Number(row.week)<Number(game.week))).slice(-10);
       if(history.length<5)continue;
+      const absence=playerAbsence(player,game);
+      // Dressed without an offensive role (lost the job): never a pick. Sat out with no
+      // injury listing: only a pick when a sportsbook lists him for this game.
+      if(absence?.status==='no-role'||(absence?.status==='inactive'&&!quotedNames.has(playerKey(player.name))))continue;
       for(const metric of availableStats(METRICS,history)){
         const isAnytime=metric==='scoredTDs';
         if((type==='props'&&isAnytime)||(type==='anytime'&&!isAnytime))continue;
         const quote=type==='anytime'?anytimeLine(books,game,player.name):bookLine(books,game,player.name,metric);
-        if(quotedNames.size&&!quote)continue;
+        if(quotedNames.size&&!quote&&!isAnytime)continue;
         const average=mean(history.map(row=>Number(row.stats[metric]??0)));
         if(!Number.isFinite(quote?.point)&&average<=0)continue;
         const line=Number.isFinite(quote?.point)?quote.point:(type==='anytime'?0.5:Number(average.toFixed(1)));
@@ -291,12 +306,14 @@ export function buildTopLooks({players,slate,books,season,type}) {
         const availability=playerInjuryStatus(game,player);
         if(['out','doubtful','inactive','ir','injured reserve','suspended','pup','physically unable to perform'].includes(availability))continue;
         const sides=type==='anytime'?['over']:['over','under'];
-        for(const side of sides.filter(s=>!quote||Number.isFinite(quote[s])))candidates.push(makePick(player,{...game,opponent},metric,market,selectedQuote,history,defense,side,teamVolumes,scoringVolumes,roleRanks,pointProjection));
+        for(const side of sides.filter(s=>!quote||Number.isFinite(quote[s])))candidates.push({...makePick(player,{...game,opponent},metric,market,selectedQuote,history,defense,side,teamVolumes,scoringVolumes,roleRanks,pointProjection),absence});
       }
     }
   }
-  const ranked=candidates.sort((a,b)=>Number(b.quote.isBookLine)-Number(a.quote.isBookLine)||b.score-a.score);
   const cap=slate.length===1?3:10;
+  // Anytime touchdowns: the players most likely to score, whatever the price.
+  if(type==='anytime')return candidates.filter(p=>p.touchdownModel).sort((a,b)=>b.chance-a.chance).slice(0,cap);
+  const ranked=candidates.sort((a,b)=>Number(b.quote.isBookLine)-Number(a.quote.isBookLine)||b.score-a.score);
   const used=new Set();
   return ranked.filter(p=>{
     const key=p.player.id+'|'+p.metric;

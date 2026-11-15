@@ -1,3 +1,4 @@
+import {touchdownChance} from './tdModel.js';
 export const METRICS = {
   passingYards: { label: 'Passing Yards', short: 'PASS YDS', unit: 'yds', defaultLine: 224.5, maximum: 600 },
   rushingAttempts: { label: 'Rushing Attempts', short: 'RUSH ATT', unit: 'att', defaultLine: 14.5, maximum: 60 },
@@ -49,9 +50,17 @@ export const summarize = (games, key, line, direction = 'over') => {
 // Line-specific probability estimate for chart and prop-list views. It combines
 // a small-sample-smoothed historical rate with a season/recent projection.
 // Context signals are optional and included only when the caller has a matching source.
-export function estimateModelHitRate(games,key,line,direction='over',{marketProbability=null,weatherSignal=0,redZoneSignal=0,injurySignal=0,injuryPenalty=0}={}){
+export function estimateModelHitRate(games,key,line,direction='over',{marketProbability=null,weatherSignal=0,redZoneSignal=0,injurySignal=0,injuryPenalty=0,position=null}={}){
   const sample=(games||[]).map(game=>Number(game.stats?.[key]??0)).filter(Number.isFinite);
   if(!sample.length||line==null||!Number.isFinite(Number(line)))return {rate:null,sample:sample.length,hits:0,pushes:0,observed:null,projection:null,marketProbability:null};
+  // Anytime touchdowns use their own calibrated model when the position is known.
+  const touchdown=key==='scoredTDs'&&Number(line)===.5?touchdownChance(games,position):null;
+  if(touchdown!=null){
+    const hits=sample.filter(value=>isHit(value,.5,direction)).length;
+    const rate=Math.min(.95,Math.max(.01,(direction==='under'?1-touchdown:touchdown)-(Number(injuryPenalty)||0)));
+    return {rate,sample:sample.length,decided:sample.length,hits,pushes:0,observed:hits/sample.length,posterior:null,projection:null,projectionChance:null,
+      marketProbability:Number.isFinite(marketProbability)?marketProbability:null,touchdownModel:true};
+  }
   const pushes=sample.filter(value=>value===Number(line)).length;
   const decided=sample.length-pushes;
   const hits=sample.filter(value=>isHit(value,Number(line),direction)).length;

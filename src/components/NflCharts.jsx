@@ -241,7 +241,7 @@ export default function NflCharts({players,seasons,slate,venue,onVenue,resetLine
   const displayed=useMemo(()=>filteredWindow(allGames,windowSize),[allGames,windowSize]);
   const current=summarize(displayed,metric,line,direction);
   const marketProbability=fairSideProbability(quote,direction,line);
-  const modelRate=estimateModelHitRate(displayed,metric,line,direction,{marketProbability});
+  const modelRate=estimateModelHitRate(displayed,metric,line,direction,{marketProbability,position:player.position});
   // Same rule as Prop Lists: no edge for anytime TDs or fewer than 4 games.
   const priceNeeded=quote&&!quote.anytime&&metric!=='scoredTDs'&&modelRate.sample>=4&&line!=null&&Number(quote.point)===Number(line)?breakEven(quote[direction]):null;
   const pushes=displayed.filter(g=>g.stats[metric]===line).length;

@@ -552,6 +552,8 @@ def main() -> int:
             record_path.write_text(json.dumps(records,separators=(",",":"))+"\n")
     previous = json.loads(OUTPUT.read_text()) if OUTPUT.exists() else {}
     add_offensive_snaps(payload, previous, player_directory)
+    from nfl_availability import add_availability
+    add_availability(payload, previous, player_directory)
     add_team_td_rates(payload.get("schedule", []), previous.get("schedule", []), current_nfl_season())
     keep_wednesday_injuries(payload.get("schedule", []), previous.get("schedule", []), datetime.now(timezone.utc))
     save_if_changed(payload)

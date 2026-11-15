@@ -69,7 +69,7 @@ export default function NflPropList({players,roster,schedule,season,books,market
         const table=ranks.get(key);
         const opponent=({LAR:'LA',WAS:'WSH',JAX:'JAC'})[game.opponent];
         const defense=table.find(d=>d.team===game.opponent)??table.find(d=>d.team===opponent);
-        const modelEstimate=estimateModelHitRate(recent,metric,point,side,{marketProbability:fairSideProbability(quote,side,point)});
+        const modelEstimate=estimateModelHitRate(recent,metric,point,side,{marketProbability:fairSideProbability(quote,side,point),position:player.position});
         const price=quote?.anytime?quote.over:quote?.[side];
         const needed=Number(quote?.point)===Number(point)||quote?.anytime?breakEven(price):null;
         // The general prop model isn't calibrated for anytime TDs or tiny samples, so no edge there.
