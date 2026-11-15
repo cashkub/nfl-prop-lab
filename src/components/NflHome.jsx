@@ -24,38 +24,17 @@ const featuredDay=days=>days.find(d=>d>=today())||days.at(-1)||'';
 const pickLine=row=>row.kind==='touchdown'?'Anytime touchdown':`${row.side==='under'?'Under':'Over'} ${row.line} ${String(row.label||'').toLowerCase()}`;
 const tone=result=>({Hit:'hit',Win:'hit',Miss:'miss',Loss:'miss',Push:'push'})[result]||'';
 
-const SHORT={'Player props':'Props','Anytime touchdowns':'TDs','Moneyline':'Moneyline','Spread':'Spread','Over/under':'Totals'};
 function RecordCell({label,record}){
   const graded=record.wins+record.losses,rate=graded?record.wins/graded:null;
-  return <a className="home-record-cell" href="#model-record" title={label}>
-    <small><span className="long">{label}</span><span className="short">{SHORT[label]}</span></small>
+  return <a className="home-tile" href="#model-record" title={label}>
+    <small>{label}</small>
     <b>{record.wins}–{record.losses}</b>
     <span className="home-meter" aria-hidden="true"><i style={{width:rate==null?'0%':Math.round(rate*100)+'%'}}/></span>
-    <em>{rate==null?'No results yet':Math.round(rate*100)+'% won'}</em>
+    <em>{rate==null?'No results yet':`${Math.round(rate*100)}% of ${graded} graded`}{record.pending?` · ${record.pending} pending`:''}</em>
   </a>;
 }
 
-const support=row=>row.kind==='touchdown'
-  ? (row.total?`Scored in ${row.hits} of his last ${row.total} games`:'')
-  : (row.total?`Went ${row.side==='under'?'under':'over'} in ${row.hits} of his last ${row.total} games`:'');
 const status=row=>row.result||(Date.parse(row.kickoff)<=Date.now()?'Started':'');
-
-function Feature({row,label,href}){
-  const opponent=row.team===row.home?row.away:row.home;
-  return <a className="home-feature" href={href} style={{'--club':teamColor(row.team)||'#a775cf'}}>
-    <span className="home-feature-tag">{label}</span>
-    <span className="home-feature-body">
-      <PlayerPhoto id={row.playerId} name={row.player} url={row.photo} eager/>
-      <span className="home-feature-who">
-        <b>{row.player}</b>
-        <small><TeamLogo team={row.team}/>{row.team} vs {opponent} · {time.format(new Date(row.kickoff))}</small>
-      </span>
-      <strong style={rateStyle(row.modelHitRate)}>{formatRate(row.modelHitRate)}<small>{row.kind==='touchdown'?'to score':'model chance'}</small></strong>
-    </span>
-    <span className="home-feature-pick">{pickLine(row)}{Number.isFinite(row.price)?<i> {priceText(row.price)}</i>:null}{status(row)?<em className={'home-result '+tone(status(row))}>{status(row)}</em>:null}</span>
-    <span className="home-feature-why">{support(row)}{Number.isFinite(row.breakEven)&&Number.isFinite(row.price)?` · price needs ${Math.round(100*row.breakEven)}%`:''}</span>
-  </a>;
-}
 
 function PickRows({rows}){
   return <ol className="home-rows">{rows.map(row=><li key={row.id} style={{'--club':teamColor(row.team)||'#a775cf'}}>
@@ -67,15 +46,14 @@ function PickRows({rows}){
   </li>)}</ol>;
 }
 
-function GameCard({row}){
+function GameRow({row}){
   const pick=row.markets.moneyline,score=row.overall,final=row.final?.length===2?row.final:null;
-  const result=final&&pick?gameResult(row,'moneyline'):'',projected=score?.length===2;
-  const side=(team,index)=><span className={'home-game-side'+(pick?.side===team?' is-pick':'')}>
-    <TeamLogo team={team}/><b>{team}</b><i>{final?final[index]:projected?Math.round(score[index]):'–'}</i></span>;
-  return <a className="home-game" href="#nfl-games" style={{'--club':teamColor(pick?.side||row.home)||'#a775cf'}}>
-    <small>{final?'Final':time.format(new Date(row.kickoff))}{!final&&projected?' · model score':''}</small>
-    {side(row.away,0)}{side(row.home,1)}
-    <em>{pick?<>Pick <b>{pick.side}</b>{Number.isFinite(pick.probability)?` ${Math.round(100*pick.probability)}%`:''}</>:'No pick saved'}{result&&result!=='Pending'?<span className={'home-result '+tone(result)}>{result}</span>:null}</em>
+  const result=final&&pick?gameResult(row,'moneyline'):'';
+  return <a className="home-game-row" href="#nfl-games" style={{'--club':teamColor(pick?.side||row.home)||'#a775cf'}}>
+    <span className="home-matchup"><TeamLogo team={row.away}/><b>{row.away}</b><i>@</i><TeamLogo team={row.home}/><b>{row.home}</b></span>
+    <span className="home-when">{final?`Final ${final[0]}–${final[1]}`:time.format(new Date(row.kickoff))}</span>
+    <small>{score?.length===2?`Model: ${row.away} ${Math.round(score[0])}, ${row.home} ${Math.round(score[1])}`:'Model score not saved'}{pick?<> · pick <b>{pick.side}</b>{Number.isFinite(pick.probability)?` ${Math.round(100*pick.probability)}%`:''}</>:null}</small>
+    {result&&result!=='Pending'?<em className={'home-result '+tone(result)}>{result}</em>:null}
   </a>;
 }
 
@@ -94,28 +72,21 @@ export default function NflHome(){
   const record=[['Player props',tally(published.filter(r=>r.kind==='prop'),r=>r.result)],['Anytime touchdowns',tally(published.filter(r=>r.kind==='touchdown'),r=>r.result)],
     ['Moneyline',market('moneyline')],['Spread',market('spread')],['Over/under',market('total')]];
   return <div className="nfl-home">
-    <div className="home-intro"><h2>{day?dayTitle(day):'NFL'}</h2><p>{slate.length?`${slate.length} ${slate.length===1?'game':'games'} on the slate`:'No games on the slate'} · {props.length+touchdowns.length} published picks</p></div>
-    {(props[0]||touchdowns[0])&&<section className="home-features">
-      {props[0]&&<Feature row={props[0]} label="Top look" href="#top-eight"/>}
-      {touchdowns[0]&&<Feature row={touchdowns[0]} label="Most likely to score" href="#top-eight"/>}
-    </section>}
     <section>
       <h2 className="home-heading">Model record <a href="#model-record">Full record</a></h2>
-      <div className="home-record">{record.map(([label,value])=><RecordCell key={label} label={label} record={value}/>)}</div>
+      <div className="home-tiles">{record.map(([label,value])=><RecordCell key={label} label={label} record={value}/>)}</div>
     </section>
-    <div className="home-columns">
-      {props.length>1&&<section>
-        <h2 className="home-heading">More top looks <a href="#top-eight">See all {props.length}</a></h2>
-        <PickRows rows={props.slice(1,6)}/>
-      </section>}
-      {touchdowns.length>1&&<section>
-        <h2 className="home-heading">More likely scorers <a href="#top-eight">See all {touchdowns.length}</a></h2>
-        <PickRows rows={touchdowns.slice(1,6)}/>
-      </section>}
-    </div>
+    {props.length>0&&<section>
+      <h2 className="home-heading">Top looks <small>{dayTitle(day)}</small><a href="#top-eight">See all {props.length}</a></h2>
+      <PickRows rows={props.slice(0,5)}/>
+    </section>}
+    {touchdowns.length>0&&<section>
+      <h2 className="home-heading">Most likely to score <small>{dayTitle(day)}</small><a href="#top-eight">See all {touchdowns.length}</a></h2>
+      <PickRows rows={touchdowns.slice(0,5)}/>
+    </section>}
     {slate.length>0&&<section>
       <h2 className="home-heading">Games <small>{dayTitle(gameDay)}</small><a href="#nfl-games">All games</a></h2>
-      <div className="home-game-strip">{slate.map(row=><GameCard key={row.id} row={row}/>)}</div>
+      <div className="home-game-list">{slate.map(row=><GameRow key={row.id} row={row}/>)}</div>
     </section>}
     <p className="home-note">Picks lock at each game’s kickoff. Percentages are the model’s estimated chance, not a guarantee.</p>
   </div>;

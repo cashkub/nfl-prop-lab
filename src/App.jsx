@@ -217,7 +217,7 @@ export default function App() {
 
     if(page==='nfl-top')return <><TopLooks players={players} schedule={nflSchedule} books={bookGames} season={scheduleSeason} now={now} loading={loading} error={error} onOpen={openTopLookChart}/></>;
     if(page==='nfl-games')return <><main className="chart-lab model-record-preview"><NflToolHeader active="games"/><NflGames schedule={isDemo?[]:data.schedule} books={bookGames} players={players} validation={isDemo?null:data.modelValidation} season={scheduleSeason} now={now} onOpen={openFromBoard} updated={updateLabel} loading={loading} error={error}/></main></>;
-    if(page==='nfl-home')return <><main className="chart-lab model-record-preview is-home"><NflToolHeader active="home"/><NflHome/></main></>;
+    if(page==='nfl-home')return <><main className="chart-lab model-record-preview"><NflToolHeader active="home"/><NflHome/></main></>;
     if(page==='model-record')return <><main className="chart-lab model-record-preview"><NflToolHeader active="record"/><ModelRecord/></main></>;
     if(page!=='prop-lists' && page!=='analyzer')return <a href="/preview/nfl/">NFL Menu</a>;
     return <>
