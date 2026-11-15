@@ -3,7 +3,7 @@ import './NflToolHeader.css';
 import {LayoutGrid, Activity, ListFilter, Crosshair, CalendarDays, BarChart3, Trophy} from 'lucide-react';
 
 const destinations=[
-  {name:'NFL Menu',short:'Menu',icon:LayoutGrid,href:'/preview/nfl/'},
+  {name:'Home',short:'Home',icon:LayoutGrid,href:'#home',key:'home'},
   {name:'Player Charts',short:'Charts',icon:Activity,href:'#analyzer',key:'charts'},
   {name:'Prop Lists',short:'Props',icon:ListFilter,href:'#prop-lists',key:'props'},
   {name:'Top Looks',short:'Top Looks',icon:Crosshair,href:'#top-eight',key:'top'},
@@ -13,9 +13,9 @@ const destinations=[
 
 export default function NflToolHeader({active,league='NFL'}){
   const links=league==='CBB'?[...destinations.slice(1),{name:'Bracketology',icon:Trophy,href:'#cbb-bracket',key:'bracket'}]:destinations;
-  const page=links.find(item=>item.key===active)||{name:league+' Today',icon:LayoutGrid};
+  const page=links.find(item=>item.key===active);
   const Icon=page.icon;
-  const [first,last]=(active==='games'?league+' Games':active==='home'?league+' Today':active==='bracket'?'CBB Bracketology':page.name).split(' ');
+  const [first,last]=(active==='games'?league+' Games':active==='home'?league+' Home':active==='bracket'?'CBB Bracketology':page.name).split(' ');
   return <><header className="nfl-tool-header">
     <a href="/preview/" className="pb-brand" aria-label={'PropBets '+league+' · All leagues'}><img alt="" src="/preview/assets/mark.svg"/><span className="pb-wordmark">Prop<span>Bets</span></span><span className="pb-sport">{league}</span></a>
     {league==='CBB'&&<a className="cbb-menu-link" href="/preview/cbb/"><LayoutGrid size={16} aria-hidden="true"/> CBB Menu</a>}

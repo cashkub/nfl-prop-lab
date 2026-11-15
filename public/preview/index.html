@@ -2,23 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
-  <title>League selection · PropBets</title>
+  <title>Pick a league · PropBets</title>
   <link rel="icon" href="./assets/mark.svg">
-  <link rel="stylesheet" href="./league.css">
+  <link rel="stylesheet" href="./lobby.css">
   <link rel="stylesheet" href="./brand.css">
-  </head>
+</head>
 <body>
-  <main>
-    <header><a class="pb-brand" href="./" aria-label="PropBets preview home"><img src="./assets/mark.svg" alt=""><span class="pb-wordmark">Prop<span>Bets</span></span></a></header>
-    <h1>Choose your <em>league.</em></h1>
-    <div class="leagues">
-      <a class="frame nfl" href="./nfl/"><strong class="glyph">NFL</strong><span class="league-status">Live · In testing</span><span class="cue" aria-hidden="true">↗</span></a>
-      <a class="frame cbb" href="./cbb/"><strong class="glyph">CBB</strong><span class="league-status">Live · In testing</span><span class="cue" aria-hidden="true">↗</span></a>
-      <div class="frame nba"><strong class="glyph">NBA</strong><span class="league-status">Coming later</span></div>
-      <div class="frame cfb"><strong class="glyph">CFB</strong><span class="league-status">Coming later</span></div>
+  <header class="lobby-top">
+    <a class="pb-brand" href="./" aria-label="PropBets home"><img src="./assets/mark.svg" alt=""><span class="pb-wordmark">Prop<span>Bets</span></span></a>
+    <p class="lobby-date" id="lobby-date"></p>
+  </header>
+  <h1 class="lobby-title">Pick a league</h1>
+  <main class="slices">
+    <a class="slice nfl" href="/?view=nfl#home">
+      <span class="slice-photo" aria-hidden="true"></span>
+      <span class="slice-body">
+        <span class="slice-state is-live">Live</span>
+        <strong>NFL</strong>
+        <span class="slice-line" id="nfl-line">Props, touchdowns and game picks</span>
+        <span class="slice-sub" id="nfl-sub"></span>
+      </span>
+    </a>
+    <a class="slice cbb" href="./cbb/">
+      <span class="slice-photo" aria-hidden="true"></span>
+      <span class="slice-body">
+        <span class="slice-state is-live">Live</span>
+        <strong>CBB</strong>
+        <span class="slice-line" id="cbb-line">College basketball games and props</span>
+        <span class="slice-sub">Charts, props, games and bracketology</span>
+      </span>
+    </a>
+    <div class="slice nba is-off">
+      <span class="slice-photo" aria-hidden="true"></span>
+      <span class="slice-body"><span class="slice-state">Coming later</span><strong>NBA</strong></span>
+    </div>
+    <div class="slice cfb is-off">
+      <span class="slice-photo" aria-hidden="true"></span>
+      <span class="slice-body"><span class="slice-state">Coming later</span><strong>CFB</strong></span>
     </div>
   </main>
+  <aside class="ticker" id="ticker" aria-label="Today's top NFL looks" hidden>
+    <b>Today’s looks</b>
+    <div class="ticker-window"><div class="ticker-track" id="ticker-track"></div></div>
+  </aside>
+  <script src="./lobby.js" defer></script>
 </body>
 </html>

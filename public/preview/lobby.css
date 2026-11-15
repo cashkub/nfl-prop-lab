@@ -1,0 +1,76 @@
+/* League screen: four slanted photo panels, the way a broadcast splits the screen. */
+@font-face{font-family:Barlow;src:url('./assets/display.ttf') format('truetype');font-style:italic;font-weight:800;font-display:swap}
+:root{color-scheme:dark;--ink:#0b0910;--paper:#f6f0fb;--violet:#c49bff;--mute:#a79bb4;--slant:9deg;--display:Barlow,Impact,sans-serif;
+  font-family:Inter,system-ui,sans-serif;color:var(--paper);background:var(--ink)}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto 1fr auto;min-height:100dvh;background:var(--ink);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+.lobby-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem clamp(1rem,4vw,3rem) .4rem}
+.lobby-date{margin:0;font-size:.9rem;color:var(--mute)}
+.lobby-title{margin:0;padding:0 clamp(1rem,4vw,3rem) .9rem;font:italic 800 clamp(1.5rem,3vw,2.2rem)/1 var(--display);text-transform:uppercase;letter-spacing:.01em;color:var(--paper)}
+
+/* The panels. Each one is skewed; its photo and text are skewed back so they stay upright. */
+.slices{display:flex;gap:.5rem;min-height:22rem;margin:0 -4rem;padding:0 4rem;overflow:hidden}
+.slice{--accent:var(--violet);position:relative;flex:1 1 0;min-width:0;overflow:hidden;transform:skewX(calc(var(--slant) * -1));
+  border-inline:2px solid color-mix(in srgb,var(--accent) 70%,transparent);background:#15121b;transition:flex-grow .45s cubic-bezier(.2,.8,.2,1)}
+.slice.nfl{--accent:#b98aff;--scene:url('./assets/nfl-action.jpg');view-transition-name:nfl-feature}
+.slice.cbb{--accent:#f39bff;--scene:url('./assets/cbb-action.jpg')}
+.slice.nba{--scene:url('./assets/nba-action.jpg')}
+.slice.cfb{--scene:url('./assets/cfb-action.jpg')}
+.slice-photo{position:absolute;inset:0 -45%;transform:skewX(var(--slant));background:var(--scene) center/cover no-repeat;filter:saturate(.9) brightness(.72);transition:transform .6s cubic-bezier(.2,.8,.2,1),filter .3s}
+.slice::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(to top,#0b0910f2 4%,#0b091099 38%,transparent 70%),linear-gradient(to top,color-mix(in srgb,var(--accent) 34%,transparent),transparent 45%)}
+.slice-body{position:absolute;z-index:1;left:0;right:0;bottom:0;display:grid;justify-items:start;gap:.35rem;
+  padding:0 clamp(1rem,2.2vw,2.2rem) clamp(1.4rem,4vh,3rem) clamp(2.2rem,4.5vw,4.6rem);transform:skewX(var(--slant));transform-origin:bottom left}
+.slice strong{font:italic 800 clamp(4.2rem,9.5vw,10rem)/.82 var(--display);letter-spacing:-.02em;color:#fff;text-shadow:0 4px 0 color-mix(in srgb,var(--accent) 55%,#000),0 0 34px color-mix(in srgb,var(--accent) 45%,transparent)}
+.slice-state{font-size:.78rem;font-weight:700;padding:.25rem .6rem;border-radius:99px;background:#0b0910c9;color:var(--mute)}
+.slice-state.is-live{color:#0b0910;background:var(--accent)}
+.slice-state.is-live::before{content:'';display:inline-block;width:.5rem;height:.5rem;margin-right:.4rem;border-radius:50%;background:#0b0910;animation:pulse 1.6s ease-in-out infinite}
+.slice-line{font-size:clamp(1rem,1.5vw,1.3rem);font-weight:750;color:#fff}
+.slice-sub{font-size:.85rem;color:#d9cfe3;min-height:1.2em}
+.slice.is-off{flex-grow:.55}
+.slice.is-off .slice-photo{filter:grayscale(1) brightness(.34)}
+.slice.is-off strong{color:#8d8498;text-shadow:none;font-size:clamp(3rem,6vw,6rem)}
+.slice.is-off{border-color:#2c2733}
+a.slice:is(:hover,:focus-visible){flex-grow:1.9}
+a.slice:is(:hover,:focus-visible) .slice-photo{filter:saturate(1.1) brightness(.92);transform:skewX(var(--slant)) scale(1.05)}
+a.slice:focus-visible{outline:3px solid #fff;outline-offset:-6px}
+
+/* Ticker of today's published looks. */
+.ticker{min-width:0;display:flex;align-items:center;gap:.9rem;padding:.7rem clamp(1rem,4vw,3rem) calc(.7rem + env(safe-area-inset-bottom));border-top:1px solid #2a2433;background:#0f0c15}
+.ticker>b{flex:none;font:italic 800 1rem/1 var(--display);text-transform:uppercase;color:var(--violet)}
+.ticker-window{overflow:hidden;min-width:0;flex:1;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.ticker-track{display:flex;gap:2.2rem;width:max-content;white-space:nowrap;font-size:.9rem;color:#d9cfe3;animation:ticker var(--ticker-seconds,60s) linear infinite}
+.ticker-track b{color:#fff;font-weight:700}
+.ticker-track i{font-style:normal;font-weight:800;color:var(--violet)}
+.ticker:hover .ticker-track{animation-play-state:paused}
+
+@keyframes ticker{to{transform:translateX(-50%)}}
+@keyframes pulse{50%{opacity:.25}}
+@keyframes slice-in{from{opacity:0;translate:0 12%}}
+.slice{animation:slice-in .7s cubic-bezier(.2,.8,.2,1) backwards}
+.slice:nth-child(2){animation-delay:.07s}.slice:nth-child(3){animation-delay:.14s}.slice:nth-child(4){animation-delay:.21s}
+
+/* Phones: the panels stack and slant the other way. */
+@media(max-width:720px){
+  body{grid-template-rows:auto auto auto auto}
+  .slices{flex-direction:column;gap:.45rem;margin:.6rem 0;padding:0;min-height:0;overflow:visible}
+  .slice{--slant:4deg;flex:none;height:clamp(10.5rem,27dvh,14rem);transform:skewY(calc(var(--slant) * -1));border-inline:0;border-block:2px solid color-mix(in srgb,var(--accent) 70%,transparent)}
+  .slice-photo{inset:-22% 0;transform:skewY(var(--slant))}
+  .slice-body{transform:skewY(var(--slant));transform-origin:center;padding:0 1.1rem 1.1rem;gap:.25rem}
+  .slice strong{font-size:clamp(4rem,21vw,5.6rem)}
+  .slice.is-off{height:5.6rem;flex-grow:0}
+  .slice.is-off .slice-body{grid-template-columns:auto 1fr;align-items:center;gap:.7rem;padding-bottom:.9rem}
+  .slice.is-off strong{font-size:2.6rem;order:-1}
+  a.slice:is(:hover,:focus-visible) .slice-photo{transform:skewY(var(--slant)) scale(1.05)}
+  .ticker{position:sticky;bottom:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .slice,.slice-photo{animation:none;transition:none}
+  .slice-state.is-live::before{animation:none}
+  .ticker-track{animation:none}
+  .ticker-window{overflow-x:auto}
+}
+@media(prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}
