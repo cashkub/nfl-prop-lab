@@ -4,7 +4,7 @@ import {activePage,menuPath} from '../src/routes.js';
 
 test('NFL tools and their older bookmarks resolve to the active NFL screens',()=>{
   for(const [hash,page] of Object.entries({
-    analyzer:'analyzer','prop-lists':'prop-lists','top-eight':'nfl-top',
+    home:'nfl-home',analyzer:'analyzer','prop-lists':'prop-lists','top-eight':'nfl-top',
     'nfl-games':'nfl-games','model-record':'model-record',props:'prop-lists',moneylines:'nfl-games'
   }))assert.equal(activePage('#'+hash),page);
 });

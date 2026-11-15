@@ -17,13 +17,20 @@ import './TopLooks.css';
 import {buildTopLooks,dayKey,dayLabel,fmtShare,averageLineLabel,projectionReason,gameContext} from '../lib/topLooksModel.js';
 export default function TopLooks({players,schedule,books,season,now,loading,error,onOpen}) {
   const future=useMemo(()=>schedule.filter(game=>Date.parse(game.kickoff)>now),[schedule,now]);
-  const days=[...new Set(future.map(game=>dayKey(game.kickoff)))].sort();
+  // Today's slate stays on the page after kickoff so published picks remain visible all day.
+  const todayKey=dayKey(new Date(now).toISOString());
+  const current=useMemo(()=>schedule.filter(game=>Date.parse(game.kickoff)>now||dayKey(game.kickoff)===todayKey),[schedule,now,todayKey]);
+  const archive=useArchive('nfl-picks.json');
+  const published=useMemo(()=>(archive.rows||[]).filter(r=>r.model==='2026.11.v2'&&r.look),[archive.rows]);
+  // Finished games leave the schedule, so today's published picks also keep today selectable.
+  const days=[...new Set([...current.map(game=>dayKey(game.kickoff)),...published.filter(r=>r.date===todayKey).map(r=>r.date)])].sort();
   const weeks=[...new Set(future.map(game=>String(game.week)))].sort((a,b)=>Number(a)-Number(b));
   const initialParams=new URLSearchParams(window.location.search);
   const [type,setType]=useState(()=>initialParams.get('topType')==='anytime'?'anytime':'props');
   const [mode,setMode]=useState(()=>initialParams.get('topMode')==='week'?'week':'day');
   const [selected,setSelected]=useState(()=>initialParams.get('topSelection')||'');
   const [openWhy,setOpenWhy]=useState('');
+  const [openPick,setOpenPick]=useState('');
   const [replayData,setReplayData]=useState(null);
   useEffect(()=>{let active=true;fetch((import.meta.env.BASE_URL||'/')+'data/nfl-v2-replay.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(data=>{if(active&&data?.schemaVersion===1)setReplayData(data);}).catch(()=>{});return()=>{active=false;};},[]);
   const replayWeeks=replayData?.week?[String(replayData.week)]:[];
@@ -31,7 +38,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
   const value=options.includes(selected)?selected:options[0]||'';
   const isReplay=mode==='week'&&String(value)==='9'&&replayData?.week===9;
   const replayDays=isReplay?replayData.days||[]:[];
-  const slate=useMemo(()=>future.filter(game=>mode==='day'?dayKey(game.kickoff)===value:String(game.week)===value),[future,mode,value]);
+  const slate=useMemo(()=>current.filter(game=>mode==='day'?dayKey(game.kickoff)===value:String(game.week)===value),[current,mode,value]);
   const replayPicks=isReplay?replayDays.flatMap(day=>(day.picks?.[type]||[]).map(pick=>({...pick,replayDayDate:day.date,replayDayLabel:day.label,replayGameCount:day.gameCount,replayAsOf:day.asOf}))):[];
   useEffect(()=>{
     const url=new URL(window.location.href);
@@ -40,17 +47,17 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
     if(value)url.searchParams.set('topSelection',value);else url.searchParams.delete('topSelection');
     window.history.replaceState(window.history.state,'',url);
   },[mode,value,type]);
-  const archive=useArchive('nfl-picks.json');
   const livePicks=useMemo(()=>{
     if(isReplay || loading || !archive.rows)return [];
-    const dates=[...new Set(slate.map(g=>dayKey(g.kickoff)))];
+    const kind=type==='props'?'prop':'touchdown';
+    const dates=mode==='day'?(value?[value]:[]):[...new Set([...slate.map(g=>dayKey(g.kickoff)),...published.filter(r=>String(r.week)===String(value)&&r.date>=todayKey).map(r=>r.date)])].sort();
     return dates.flatMap(date=>{
       const fixtures=slate.filter(g=>dayKey(g.kickoff)===date);
-      const locked=(archive.rows||[]).filter(r=>r.model==='2026.11.v2'&&r.look&&r.date===date&&r.kind===(type==='props'?'prop':'touchdown'));
-      if(locked.length)return locked.filter(r=>fixtures.some(g=>g.id===r.gameId)).sort((a,b)=>a.rank-b.rank).map(r=>publishedLook(r,players,fixtures));
-      return buildTopLooks({players,slate:fixtures,books,season,type});
+      const locked=published.filter(r=>r.date===date&&r.kind===kind);
+      if(locked.length)return locked.sort((a,b)=>a.rank-b.rank).map(r=>publishedLook(r,players,fixtures));
+      return buildTopLooks({players,slate:fixtures.filter(g=>Date.parse(g.kickoff)>now),books,season,type});
     });
-  },[slate,players,season,books,type,archive.rows,isReplay,loading]);
+  },[slate,players,season,books,type,published,archive.rows,isReplay,loading,now,mode,value,todayKey]);
   const picks=isReplay?replayPicks:livePicks;
   const markets=Object.fromEntries(Object.entries(METRICS).map(([key,market])=>[key,market.label]));
   const kickDate=value&&mode==='day'?dayLabel(value):value?'Week '+value:'Upcoming';
@@ -84,7 +91,18 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
         const displayCount=pick.replayCount||picks.length;
         const startsReplayDay=isReplay&&(index===0||picks[index-1]?.replayDayDate!==pick.replayDayDate);
         const whyOpen=openWhy===pickKey;
-        return <React.Fragment key={(isReplay?'replay-':'')+pick.game.id+pick.player.id+pick.metric+pick.side}>{startsReplayDay&&<div className="replay-day-heading"><strong>{pick.replayDayLabel}</strong><span>{pick.replayGameCount} games · pregame snapshot {new Date(pick.replayAsOf).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} ET</span></div>}<article className="top-pick panel" key={pick.game.id+pick.player.id+pick.metric+pick.side} style={{'--club':teamColor(pick.player.team)||'#a775cf'}}>
+        const pickOpen=openPick===pickKey;
+        const rowPrice=pick.quote.anytime?pick.quote.over:pick.quote[pick.side];
+        return <React.Fragment key={(isReplay?'replay-':'')+pick.game.id+pick.player.id+pick.metric+pick.side}>{startsReplayDay&&<div className="replay-day-heading"><strong>{pick.replayDayLabel}</strong><span>{pick.replayGameCount} games · pregame snapshot {new Date(pick.replayAsOf).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} ET</span></div>}<article className={"top-pick panel"+(pickOpen?" is-open":"")} key={pick.game.id+pick.player.id+pick.metric+pick.side} style={{'--club':teamColor(pick.player.team)||'#a775cf'}}>
+          <button className="pick-row" type="button" aria-expanded={pickOpen} onClick={()=>setOpenPick(pickOpen?'':pickKey)}>
+            <span className="pick-row-rank">{displayRank}</span>
+            <PlayerPhoto id={pick.player.id} name={pick.player.name} url={pick.player.photo}/>
+            <span className="pick-row-who"><b>{pick.player.name}</b><small>{pick.quote.anytime?'Anytime touchdown':`${pick.side==='under'?'Under':'Over'} ${pick.line} ${String(markets[pick.metric]).toLowerCase()}`}{pick.quote.isBookLine&&Number.isFinite(rowPrice)?<i> · {priceText(rowPrice)}</i>:null}</small>
+              <small className="pick-row-game"><TeamLogo team={pick.player.team}/>{pick.player.team} vs {pick.game.opponent} · {new Date(pick.game.kickoff).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})}</small></span>
+            <span className="pick-row-chance"><b style={rateStyle(pick.chance)}>{formatRate(pick.chance)}</b><small>{pick.quote.anytime?'to score':'model chance'}</small>{pick.result?<em className={'pick-row-result '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||'')}>{pick.result}</em>:Date.parse(pick.game.kickoff)<=now&&!isReplay?<em className="pick-row-result">Started</em>:null}</span>
+            <ChevronDown className="pick-row-chevron" size={18}/>
+          </button>
+          {pickOpen&&<div className="pick-body">
           <div className="pick-rank"><b>{String(displayRank).padStart(2,'0')}</b>{pick.touchdownModel?<small title="Model chance to score a touchdown">{pick.rankScore}% TO SCORE</small>:<small title="Comparative Model Score, Not A Percentage">{pick.rankScore} SCORE</small>}</div>
           <PlayerPhoto id={pick.player.id} name={pick.player.name} url={pick.player.photo}/>
           <div className="top-pick-main">
@@ -121,6 +139,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
                 </div>
               </div>
           </div>
+          </div>}
         </article></React.Fragment>;
       })}</section>:
       <section className="no-top-picks panel"><h2>No qualified picks for {isReplay?'Week 9 replay':kickDate}</h2>

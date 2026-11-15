@@ -1,0 +1,78 @@
+/* Visual refresh: calmer surfaces, clearer type, compact Top Looks, phone bottom bar.
+   Loaded after the component styles; selectors are prefixed with html so they win. */
+
+/* 1. Quieter page background: the playbook art stays, far fainter. */
+html body:has(.chart-lab){background:linear-gradient(#0f1013ee,#0f1013ee),#0f1013 url('/preview/assets/playbook.svg') center top/90rem auto}
+
+/* 2. Fewer borders and glows on cards and nested boxes. */
+html .chart-lab :is(.lab-block,.panel,.mr-archive,.mr-pick,.mr-kpi,.mr-period-select,.mr-totals,.slate-fixture,.top-filter){border-color:#2a2a32;box-shadow:none}
+html .chart-lab :is(.mr-detail-block,.top-pick-stat,.pick-reason-grid>section,.kickoff-conditions>div){border-color:transparent;background:#ffffff09;box-shadow:none}
+html .chart-lab .mr-hero{min-height:0;border-color:#3a3144;box-shadow:none}
+html .chart-lab .mr-hero:after{display:none}
+
+/* 3. Player names in the clean text face; the display face stays for page titles. */
+html .chart-lab :is(.top-pick h2,.lab-player h2,.no-top-picks h2){font:800 1.15rem/1.2 system-ui,sans-serif;font-style:normal;letter-spacing:0;text-shadow:none;text-transform:none}
+html .chart-lab .lab-player h2{font-size:1.5rem}
+
+/* 4. Small labels: larger and brighter. */
+html .chart-lab :is(.mr-pick-glance small,.mr-bet small,.mr-player small,.mr-final small,.mr-kpi small,.mr-kpi p,.top-pick-stat small,.top-matchup,.line-origin){font-size:.72rem;color:#c3b9cd;letter-spacing:.02em}
+html .chart-lab .mr-glance-date{font-size:.78rem;color:#c3b9cd}
+
+/* 5. Top Looks: one compact row per pick; tap to open the detail. */
+html .chart-lab .top-pick{display:block;padding:0;border:1px solid #26262d;border-radius:.8rem;background:#18191d;box-shadow:inset 3px 0 var(--club);transform:none}
+html .chart-lab .top-pick:hover{transform:none;border-color:#3a3644;box-shadow:inset 3px 0 var(--club)}
+html .chart-lab .top-pick.is-open{border-color:#4a4158}
+.pick-row{display:flex;align-items:center;gap:.7rem;width:100%;padding:.7rem .85rem .7rem 1rem;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pick-row-rank{width:1.2rem;flex:none;text-align:center;font-size:.85rem;font-weight:750;color:#948b9e;font-variant-numeric:tabular-nums}
+html .chart-lab .pick-row .player-photo{width:2.6rem;height:2.6rem;flex:none;border-width:1px;box-shadow:none}
+.pick-row-who{display:grid;gap:.12rem;min-width:0;flex:1}
+.pick-row-who b{font-size:1rem;font-weight:750;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-row-who small{font-size:.84rem;color:#e2dae9;font-weight:550}
+.pick-row-who small i{font-style:normal;color:#aaa0b4;font-weight:500}
+.pick-row-who .pick-row-game{display:flex;align-items:center;gap:.3rem;font-size:.72rem;color:#948b9e;font-weight:500}
+.pick-row-game .team-logo{width:.95rem;height:.95rem;object-fit:contain}
+.pick-row-chance{display:grid;justify-items:end;gap:.05rem;flex:none}
+.pick-row-chance b{font-size:1.55rem;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.pick-row-chance small{font-size:.66rem;color:#aaa0b4}
+.pick-row-chevron{flex:none;color:#948b9e;transition:transform .18s}
+.top-pick.is-open .pick-row-chevron{transform:rotate(180deg)}
+.pick-body{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.6rem;padding:.2rem 1rem 1rem;border-top:1px solid #26262d}
+html .chart-lab .pick-body>:is(.pick-rank,.player-photo){display:none}
+html .chart-lab .pick-body>.top-pick-main{grid-column:1/-1;grid-row:auto;padding-top:.6rem}
+html .chart-lab .pick-body .top-pick-main :is(h2,.top-matchup),html .chart-lab .pick-body .top-pick-main>h2+p{display:none}
+html .chart-lab .pick-body>.projection-stat{grid-column:1/3;grid-row:auto}
+html .chart-lab .pick-body>.chance-stat{grid-column:3/5;grid-row:auto}
+html .chart-lab .pick-body>.defense-stat{grid-column:5/7;grid-row:auto}
+html .chart-lab .pick-body>.top-pick-stat{min-height:0;padding:.6rem .4rem;border-radius:.6rem}
+html .chart-lab .pick-body>:is(.top-pick-actions,.pick-reason-collapse){grid-column:1/-1;grid-row:auto}
+html .chart-lab .pick-body>.top-pick-actions{display:flex}
+html .chart-lab .pick-body>.top-pick-actions button{flex:1;min-height:40px;border-color:#4a4158;background:#23202a}
+@media(max-width:680px){
+  html .chart-lab .pick-body>.projection-stat{grid-column:1/4}
+  html .chart-lab .pick-body>.chance-stat{grid-column:4/7}
+  html .chart-lab .pick-body>.defense-stat{grid-column:1/-1}
+  .pick-row{gap:.55rem;padding:.65rem .6rem .65rem .8rem}
+  .pick-row-chance b{font-size:1.4rem}
+}
+@media(prefers-reduced-motion:reduce){.pick-row-chevron{transition:none}}
+
+/* 6. Phones: slimmer page banner and a bottom navigation bar. */
+@media(max-width:680px){
+  html .chart-lab .nfl-page-banner{margin:.5rem 0 .8rem;padding:.55rem .9rem;border-radius:.7rem}
+  html .chart-lab .nfl-page-banner h1{font-size:1.55rem}
+  html .chart-lab .nfl-page-emblem{display:none}
+  html .chart-lab:not(.cb){padding-bottom:5.2rem}
+  html .chart-lab:not(.cb) .nfl-tool-header nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;padding:.3rem .2rem calc(.3rem + env(safe-area-inset-bottom));border:0;border-top:1px solid #2a2a32;border-radius:0;background:#131418f2;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  html .chart-lab:not(.cb) .nfl-tool-header nav :is(a,button){display:grid;justify-items:center;gap:.15rem;min-height:46px;padding:.3rem 0;border:0;border-radius:.5rem;background:none;box-shadow:none;color:#948b9e;font-size:.64rem;font-weight:650;white-space:nowrap}
+  html .chart-lab:not(.cb) .nfl-tool-header nav a[aria-current=page]{background:none;box-shadow:none;color:#d6b4ff}
+  html .chart-lab:not(.cb) .nfl-tool-header nav a[aria-current=page]::after{display:none}
+  html .chart-lab:not(.cb) .nfl-tool-header nav svg{width:20px;height:20px;color:currentColor}
+  html .chart-lab:not(.cb) .nfl-tool-header nav .nav-long{display:none}
+  html .chart-lab:not(.cb) .nfl-tool-header nav .nav-short{display:block}
+}
+.pick-row-result{flex:none;font-style:normal;font-size:.68rem;font-weight:750;padding:.15rem .5rem;border-radius:99px;background:#2b2a31;color:#cfc6d8}
+.pick-row-result.hit{background:#1c3a2a;color:#8ee6b0}.pick-row-result.miss{background:#40242a;color:#f5a3ad}.pick-row-result.push{background:#3d3520;color:#f2cf73}
+html .chart-lab .pick-row,html .chart-lab .pick-row *{text-transform:none}
+.pick-row-chance .pick-row-result{margin-top:.2rem}
+.pick-row-who .pick-row-game{white-space:nowrap}
+@media(max-width:680px){html .chart-lab .pick-row .player-photo{width:2.3rem;height:2.3rem}.pick-row-who b{font-size:.95rem}.pick-row-who small{font-size:.8rem}}

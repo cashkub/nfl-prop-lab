@@ -1,4 +1,5 @@
 const pages = {
+  '#home':'nfl-home',
   '#analyzer':'analyzer', '#game-log':'analyzer', '#about':'analyzer',
   '#prop-lists':'prop-lists', '#props':'prop-lists', '#best-hit-rates':'prop-lists',
   '#top-eight':'nfl-top', '#top-five':'nfl-top', '#nfl-games':'nfl-games',
