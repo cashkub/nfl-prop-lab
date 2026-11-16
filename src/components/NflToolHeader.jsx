@@ -12,7 +12,7 @@ const destinations=[
 ];
 
 export default function NflToolHeader({active,league='NFL'}){
-  const links=league==='CBB'?[...destinations.slice(1),{name:'Bracketology',icon:Trophy,href:'#cbb-bracket',key:'bracket'}]:destinations;
+  const links=league==='CBB'?[...destinations,{name:'Bracketology',icon:Trophy,href:'#cbb-bracket',key:'bracket'}]:destinations;
   const page=links.find(item=>item.key===active);
   const Icon=page.icon;
   const [first,last]=(active==='games'?league+' Games':active==='home'?league+' Home':active==='bracket'?'CBB Bracketology':page.name).split(' ');

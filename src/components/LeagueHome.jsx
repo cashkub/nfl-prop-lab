@@ -26,7 +26,7 @@ function RecordTile({label,wins,losses,pending,href}){
 function PickRow({row}){
   return <li className={row.tone?'is-'+row.tone:''} style={{'--club':row.color||'#a775cf'}}>
     <span className="lh-rank">{row.rank}</span>
-    <PlayerPhoto id={row.playerId} name={row.name} url={row.photo} eager/>
+    {row.logo?<span className="lh-logo"><TeamLogo team={row.logo} sport={row.sport}/></span>:<PlayerPhoto id={row.playerId} name={row.name} url={row.photo} eager/>}
     <span className="lh-who"><b>{row.name}</b><small>{row.pick}{row.price?<i> · {row.price}</i>:null}</small>{row.final?<small className={'lh-final '+(row.tone||'')}>{row.final}</small>:null}</span>
     <span className="lh-chance"><strong style={row.chanceStyle}>{row.chance}</strong>{row.support?<small>{row.support}</small>:null}<Result text={row.status} tone={row.tone}/></span>
   </li>;
@@ -34,7 +34,7 @@ function PickRow({row}){
 
 function GameRow({row,sport,href}){
   const played=row.awayActual!=null&&row.homeActual!=null;
-  const side=(team,model,actual)=><span className={'lh-side'+(row.pickSide===team?' is-pick':'')}><TeamLogo team={team} sport={sport}/><b>{team}</b>
+  const side=(team,model,actual)=><span className={'lh-side'+(row.pickSide===team?' is-pick':'')}><TeamLogo team={team} sport={sport}/><b>{row.names?.[team]||team}</b>
     <i>{model??'–'}</i>{played?<u>{actual}</u>:null}</span>;
   return <a className={'lh-game'+(row.isLive?' is-live':'')} href={href} style={{'--club':row.color||'#a775cf'}}>
     <small><span>{row.when}</span>{row.scoreLabel?<i>{row.scoreLabel}</i>:null}{played?<u>{row.actualLabel}</u>:null}</small>
@@ -43,7 +43,7 @@ function GameRow({row,sport,href}){
   </a>;
 }
 
-export default function LeagueHome({hero,record=[],sections=[],games}){
+export default function LeagueHome({hero,record=[],sections=[],games,note}){
   return <div className="league-home" style={{'--accent':hero.accent||'#b98aff'}}>
     <header className="lh-hero" style={{'--scene':`url('${hero.photo}')`}}>
       <span className="lh-live">Live</span>
@@ -59,9 +59,9 @@ export default function LeagueHome({hero,record=[],sections=[],games}){
       <ol className="lh-rows">{section.rows.map(row=><PickRow key={row.id} row={row}/>)}</ol>
     </section>)}</div>
     {games?.rows.length>0&&<section>
-      <h3 className="lh-heading">{games.title}{games.note?<small>{games.note}</small>:null}<a href={games.href}>All games</a></h3>
+      <h3 className="lh-heading">{games.title}{games.note?<small>{games.note}</small>:null}<a href={games.href}>{games.linkLabel||'All games'}</a></h3>
       <div className="lh-games">{games.rows.map(row=><GameRow key={row.id} row={row} sport={games.sport} href={games.href}/>)}</div>
     </section>}
-    <p className="lh-note">Picks lock at each game’s kickoff. Percentages are the model’s estimated chance, not a guarantee.</p>
+    <p className="lh-note">{note||'Picks lock at each game’s kickoff. Percentages are the model’s estimated chance, not a guarantee.'}</p>
   </div>;
 }

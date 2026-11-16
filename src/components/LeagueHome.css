@@ -8,7 +8,7 @@
 /* Hero: league photo with a slanted lower edge. */
 .chart-lab .league-home .lh-hero{position:relative;display:grid;align-content:end;justify-items:start;gap:.35rem;min-height:clamp(13rem,30vw,19rem);margin:0;padding:1.2rem clamp(1.1rem,3vw,2.2rem) clamp(2.4rem,6vw,4rem);border:0;border-radius:1rem 1rem 0 0;overflow:hidden;isolation:isolate;
   clip-path:polygon(0 0,100% 0,100% calc(100% - clamp(1.6rem,5vw,3.6rem)),0 100%)}
-.lh-hero::before{content:'';position:absolute;inset:0;z-index:-2;background:var(--scene) center 40%/cover no-repeat;filter:saturate(.95) brightness(.8)}
+.lh-hero::before{content:'';position:absolute;inset:0;z-index:-2;background:var(--scene) center 30%/cover no-repeat;filter:saturate(.95) brightness(.8)}
 .lh-hero::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(to top,#0b0910f0 6%,#0b091088 45%,transparent 78%),linear-gradient(to top right,color-mix(in srgb,var(--accent) 42%,transparent),transparent 55%)}
 .lh-live{font-size:.76rem;font-weight:750;padding:.22rem .6rem;border-radius:99px;color:#0b0910;background:var(--accent)}
 .lh-live::before{content:'';display:inline-block;width:.48rem;height:.48rem;margin-right:.4rem;border-radius:50%;background:#0b0910;animation:lh-pulse 1.6s ease-in-out infinite}
@@ -82,3 +82,8 @@
 .lh-result.live{background:#17352a;color:#8ee6b0}
 .lh-who .lh-final{font-weight:700;color:#e6dcef}
 .lh-who .lh-final.hit,.lh-who .lh-final.live{color:#8ee6b0}.lh-who .lh-final.miss{color:#f5a3ad}.lh-who .lh-final.push{color:#f2cf73}
+.lh-logo{display:grid;place-items:center;width:2.6rem;height:2.6rem;flex:none;border-radius:50%;background:#00000040;border:1px solid color-mix(in srgb,var(--club) 60%,#444)}
+.lh-logo .team-logo{width:1.7rem;height:1.7rem;object-fit:contain}
+.lh-side b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lh-tiles:has(.lh-tile:nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:560px){.lh-tiles:has(.lh-tile:nth-child(3):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}}

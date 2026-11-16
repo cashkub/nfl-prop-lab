@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import NflToolHeader from '../components/NflToolHeader.jsx';
 import Bracket from './Bracket.jsx';
+import LeagueHome from '../components/LeagueHome.jsx';
 import GameBars from '../components/GameBars.jsx';
 import LineControl,{ControlLabel} from '../components/LineControl.jsx';
 import ChartSelect from '../components/ChartSelect.jsx';
@@ -19,7 +20,7 @@ import '../components/NflCharts.css';
 import './styles.css';
 
 const markets={points:'Points',rebounds:'Rebounds',assists:'Assists',threes:'Made threes',turnovers:'Turnovers',steals:'Steals',blocks:'Blocks',PRA:'Points + rebounds + assists',PR:'Points + rebounds',PA:'Points + assists',RA:'Rebounds + assists'};
-const pages=['charts','props','top','games','record','bracket'];
+const pages=['home','charts','props','top','games','record','bracket'];
 const venueOptions=['All','Home','Away','Neutral'];
 const money=v=>v==null?'—':(v>0?'+':'')+v;
 const pct=v=>v==null?'—':Math.round(v*100)+'%';
@@ -60,7 +61,49 @@ function Shell(){
     const onHash=()=>{const next=current();if(!pages.includes(next)){location.replace('/preview/cbb/');return;}setPage(next);window.scrollTo(0,0);};
     window.addEventListener('hashchange',onHash);return ()=>window.removeEventListener('hashchange',onHash);
   },[]);
-  return <main className={'chart-lab cb '+({props:'prop-list',top:'top-looks',games:'model-record-preview',record:'model-record-preview'}[page]||'')}><NflToolHeader league="CBB" active={page}/>{meta.value&&page==='bracket'?<Bracket meta={meta.value} useFile={useFile}/>:meta.value?<League page={page} meta={meta.value}/>:<p role="status">{meta.error?'CBB snapshot unavailable.':'Loading college basketball…'}</p>}</main>;
+  return <main className={'chart-lab cb '+({home:'model-record-preview',props:'prop-list',top:'top-looks',games:'model-record-preview',record:'model-record-preview'}[page]||'')}><NflToolHeader league="CBB" active={page}/>{meta.value&&page==='bracket'?<Bracket meta={meta.value} useFile={useFile}/>:meta.value&&page==='home'?<Home meta={meta.value}/>:meta.value?<League page={page} meta={meta.value}/>:<p role="status">{meta.error?'CBB snapshot unavailable.':'Loading college basketball…'}</p>}</main>;
+}
+// Short school name for tight spaces: "Duke Blue Devils" -> "Duke".
+const MASCOT_FIRST=/^(Golden|Red|Blue|Fighting|Crimson|Yellow|Great|Black|Scarlet|Mean|Demon|Horned|Nittany|Tar|Purple|Runnin'|Ragin'|Rainbow|Green|Big|Thundering|Delta|Wolf|Sun|Blue)$/;
+const school=(name='')=>{
+  const words=name.split(' ');
+  if(words.length<2)return name;
+  words.pop();
+  if(words.length>1&&MASCOT_FIRST.test(words.at(-1)))words.pop();
+  return words.join(' ');
+};
+function Home({meta}){
+  const today=etDay(Date.now());
+  const day=(meta.firstDay>=today?meta.firstDay:meta.days.find(d=>d>=today))||meta.days.at(-1);
+  const slate=useFile(day+'.json'),record=useFile('record.json'),directory=useFile('team-directory.json').value;
+  if(!slate.value||!record.value)return <p role="status">{slate.error||record.error?'CBB home data is unavailable right now.':'Loading college basketball…'}</p>;
+  const ranks=directory?.ranks||{},teams=meta.teams;
+  const color=id=>'#'+(teams[id]?.color||'b69bd8');
+  const label=id=>(ranks[id]?'#'+ranks[id]+' ':'')+school(teams[id]?.name||id);
+  const games=slate.value;
+  const tally=market=>{
+    const rows=record.value.filter(r=>r.market===market);
+    return {label:market==='Total'?'Over/under':market,href:'#cbb-record',wins:rows.filter(r=>r.result==='Win').length,losses:rows.filter(r=>r.result==='Loss').length,pending:rows.filter(r=>!r.result).length};
+  };
+  const scorers=games.flatMap(g=>g.roster.map(p=>({p,g}))).sort((a,b)=>b.p.estimate.points-a.p.estimate.points).slice(0,5)
+    .map(({p,g},i)=>({id:g.id+p.id,rank:i+1,name:p.name,playerId:p.id,photo:'https://a.espncdn.com/i/headshots/mens-college-basketball/players/full/'+p.id+'.png',color:color(p.team),
+      pick:school(teams[p.team]?.name)+' '+(p.team===g.home?'vs':'at')+' '+school(teams[p.team===g.home?g.away:g.home]?.name),status:'',chance:p.estimate.points.toFixed(1),support:'projected points'}));
+  const favorites=[...games].sort((a,b)=>Math.max(b.homeWin,1-b.homeWin)-Math.max(a.homeWin,1-a.homeWin)).slice(0,5).map((g,i)=>{
+    const pick=g.homeWin>=.5?g.home:g.away,other=pick===g.home?g.away:g.home;
+    return {id:g.id,rank:i+1,name:label(pick),logo:pick,sport:'cbb',color:color(pick),pick:(pick===g.home?'vs ':'at ')+label(other)+' · '+timeFmt.format(new Date(g.time)),status:'',
+      chance:pct(Math.max(g.homeWin,1-g.homeWin)),chanceStyle:rateStyle(Math.max(g.homeWin,1-g.homeWin)),support:'win chance'};
+  });
+  const featured=[...games].sort((a,b)=>Number(Boolean(ranks[b.home]||ranks[b.away]))-Number(Boolean(ranks[a.home]||ranks[a.away]))||a.time.localeCompare(b.time)).slice(0,12).map(g=>{
+    const pick=g.homeWin>=.5?g.home:g.away;
+    return {id:g.id,color:color(pick),away:g.away,home:g.home,names:{[g.away]:label(g.away),[g.home]:label(g.home)},when:timeFmt.format(new Date(g.time)),scoreLabel:'Model',
+      awayScore:Math.round(g.awayScore),homeScore:Math.round(g.homeScore),pickSide:pick,pickText:'Pick '+school(teams[pick]?.name)+' · '+pct(Math.max(g.homeWin,1-g.homeWin))};
+  });
+  return <LeagueHome hero={{league:'CBB',photo:'/preview/assets/cbb-scene.svg',accent:'#f39bff',date:new Intl.DateTimeFormat('en-US',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric'}).format(new Date(day+'T12:00Z')),
+      lines:[games.length+(games.length===1?' game':' games'),'Projections from the pregame model']}}
+    record={['Moneyline','Spread','Total'].map(tally)}
+    sections={[{title:'Top projected scorers',href:'#cbb-props',linkLabel:'All props',rows:scorers},{title:'Biggest favorites',href:'#cbb-games',linkLabel:'All games',rows:favorites}]}
+    games={{title:'Games',href:'#cbb-games',sport:'cbb',linkLabel:'All '+games.length+' games',rows:featured}}
+    note="Projections are the model’s pregame estimates, not guarantees. CBB sportsbook lines are paused, so no prices are shown."/>;
 }
 function League({page,meta}){
   const today=etDay(Date.now());
