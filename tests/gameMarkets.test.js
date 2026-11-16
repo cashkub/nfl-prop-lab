@@ -25,9 +25,10 @@ test('published Top Looks use exactly the archived market, side, line, price, an
   assert.deepEqual([look.player.name,look.game.opponent,look.metric,look.side,look.line,look.quote.under,look.publishedRank],['Player','NYG','rushingYards','under',29.5,-110,2]);
 });
 
-test('moneyline pick is the model winner, with the edge against its price recorded',()=>{
-  const fav={...game,homePrice:-175,awayPrice:150,context:{elo:{homeProbability:.591,awayProbability:.409}}};
+test('win chance starts from the moneyline and falls back to Elo without one',()=>{
+  const fav={...game,homePrice:-175,awayPrice:150,context:{elo:{homeProbability:.45,awayProbability:.55}}};
   const pick=marketSnapshot(fav,model).moneyline;
-  assert.equal(pick.side,'NYG');assert.ok(pick.edge<0);
-  assert.equal(marketSnapshot({...game,homePrice:null},model).moneyline.edge,undefined);
+  assert.equal(pick.side,'NYG');assert.ok(pick.probability>.6&&pick.edge<0);
+  const noLine=marketSnapshot({...fav,homePrice:null},model).moneyline;
+  assert.equal(noLine.side,'WAS');assert.equal(noLine.probability,.55);
 });
