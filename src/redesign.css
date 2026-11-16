@@ -61,14 +61,6 @@ html .chart-lab .pick-body>.top-pick-actions button{flex:1;min-height:40px;borde
   html .chart-lab .nfl-page-banner{margin:.5rem 0 .8rem;padding:.55rem .9rem;border-radius:.7rem}
   html .chart-lab .nfl-page-banner h1{font-size:1.55rem}
   html .chart-lab .nfl-page-emblem{display:none}
-  html .chart-lab:not(.cb){padding-bottom:5.2rem}
-  html .chart-lab:not(.cb) .nfl-tool-header nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0;padding:.3rem .2rem calc(.3rem + env(safe-area-inset-bottom));border:0;border-top:1px solid #2a2a32;border-radius:0;background:#131418f2;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-  html .chart-lab:not(.cb) .nfl-tool-header nav :is(a,button){display:grid;justify-items:center;gap:.15rem;min-height:46px;padding:.3rem 0;border:0;border-radius:.5rem;background:none;box-shadow:none;color:#948b9e;font-size:.64rem;font-weight:650;white-space:nowrap}
-  html .chart-lab:not(.cb) .nfl-tool-header nav a[aria-current=page]{background:none;box-shadow:none;color:#d6b4ff}
-  html .chart-lab:not(.cb) .nfl-tool-header nav a[aria-current=page]::after{display:none}
-  html .chart-lab:not(.cb) .nfl-tool-header nav svg{width:20px;height:20px;color:currentColor}
-  html .chart-lab:not(.cb) .nfl-tool-header nav .nav-long{display:none}
-  html .chart-lab:not(.cb) .nfl-tool-header nav .nav-short{display:block}
 }
 .pick-row-result{flex:none;font-style:normal;font-size:.68rem;font-weight:750;padding:.15rem .5rem;border-radius:99px;background:#2b2a31;color:#cfc6d8}
 .pick-row-result.hit{background:#1c3a2a;color:#8ee6b0}.pick-row-result.miss{background:#40242a;color:#f5a3ad}.pick-row-result.push{background:#3d3520;color:#f2cf73}
@@ -132,3 +124,42 @@ html .chart-lab .kickoff-conditions>div{border:0;background:#ffffff0a}
 html .chart-lab .lab-block :is(table,th,td){border-color:#2c2c34}
 html .chart-lab .lab-block dl>div{border-color:#2c2c34}
 html .chart-lab .lab-controls :is(.chart-select,label),html .chart-lab .chart-disclosure{border-color:#34313d;box-shadow:none}
+
+/* 9. Navigation buttons: slanted tiles with an icon chip, same look top (desktop) and bottom (phone). */
+html .chart-lab .nfl-tool-header nav{--nav:#c49bff;display:flex;flex-wrap:nowrap;gap:.45rem;width:100%;box-sizing:border-box;padding:0 .5rem;border:0;border-radius:0;background:none;box-shadow:none}
+html .chart-lab .nfl-tool-header nav :is(a,button){position:relative;flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-start;gap:.55rem;min-height:48px;padding:.4rem .9rem .4rem .55rem;border:1px solid #34313f;border-left:3px solid color-mix(in srgb,var(--nav) 55%,#34313f);border-radius:.35rem;background:linear-gradient(160deg,color-mix(in srgb,var(--nav) 9%,#1b1c21),#17181c 70%);box-shadow:none;color:#cfc8d8;font:italic 750 .92rem/1.1 LabDisplay,system-ui,sans-serif;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;text-decoration:none;transform:skewX(-9deg);transition:border-color .15s,background .15s,color .15s}
+html .chart-lab .nfl-tool-header nav :is(a,button)>*{transform:skewX(9deg)}
+html .chart-lab .nfl-tool-header nav .nav-ico{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:.45rem;background:color-mix(in srgb,var(--nav) 16%,#15161a);border:1px solid color-mix(in srgb,var(--nav) 32%,#26262d);color:var(--nav)}
+html .chart-lab .nfl-tool-header nav .nav-ico svg{width:17px;height:17px;color:currentColor}
+html .chart-lab .nfl-tool-header nav .nav-long{overflow:hidden;text-overflow:ellipsis}
+html .chart-lab.cb .nfl-tool-header nav a{white-space:nowrap;overflow-wrap:normal}
+html .chart-lab.cb .nfl-tool-header nav :is(a,button){gap:.4rem;padding-right:.5rem;font-size:.84rem}
+html .chart-lab .nfl-tool-header nav a:hover{border-color:color-mix(in srgb,var(--nav) 70%,#34313f);background:linear-gradient(160deg,color-mix(in srgb,var(--nav) 18%,#1b1c21),#1a1b20 70%);color:#fff}
+html .chart-lab .nfl-tool-header nav a[aria-current=page]{border-color:color-mix(in srgb,var(--nav) 85%,#fff);border-left-color:#fff;background:linear-gradient(115deg,color-mix(in srgb,var(--nav) 62%,#241a38),color-mix(in srgb,var(--nav) 30%,#1d1830));color:#fff;box-shadow:0 6px 18px -8px var(--nav)}
+html .chart-lab .nfl-tool-header nav a[aria-current=page]::after{display:none}
+html .chart-lab .nfl-tool-header nav a[aria-current=page] .nav-ico{background:#fff;border-color:#fff;color:#3d2466}
+html .chart-lab .nfl-tool-header nav a:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(max-width:980px) and (min-width:681px){
+  html .chart-lab .nfl-tool-header nav :is(a,button){gap:.35rem;padding:.35rem .5rem .35rem .4rem;font-size:.74rem}
+  html .chart-lab .nfl-tool-header nav .nav-ico{width:24px;height:24px}
+  html .chart-lab .nfl-tool-header nav .nav-long{display:none}
+  html .chart-lab .nfl-tool-header nav .nav-short{display:block}
+}
+@media(max-width:680px){
+  html .chart-lab{padding-bottom:5.6rem}
+  html .chart-lab.cb .nfl-tool-header{container-type:normal}
+  html .chart-lab .nfl-tool-header nav,html .chart-lab.cb .nfl-tool-header nav{grid-template-columns:repeat(var(--nav-count,6),minmax(0,1fr))}
+  html .chart-lab .nfl-tool-header nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;gap:.2rem;width:auto;margin:0;padding:.4rem .35rem calc(.4rem + env(safe-area-inset-bottom));border-top:1px solid color-mix(in srgb,var(--nav) 38%,#26262d);background:linear-gradient(180deg,#1b1924f5,#111216f8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 -8px 22px -14px var(--nav)}
+  html .chart-lab .nfl-tool-header nav :is(a,button){flex-direction:column;justify-content:center;gap:.22rem;min-height:50px;padding:.3rem 0 .25rem;border:0;border-radius:.5rem;background:none;box-shadow:none;transform:none;color:#b3abbc;font-size:.78rem;letter-spacing:.03em}
+  html .chart-lab .nfl-tool-header nav :is(a,button)>*{transform:none}
+  html .chart-lab .nfl-tool-header nav .nav-ico{width:38px;height:27px;border-radius:.4rem;transform:skewX(-9deg)}
+  html .chart-lab .nfl-tool-header nav .nav-ico svg{transform:skewX(9deg)}
+  html .chart-lab .nfl-tool-header nav a:hover{background:none}
+  html .chart-lab .nfl-tool-header nav a[aria-current=page]{background:none;box-shadow:none;color:#fff}
+  html .chart-lab .nfl-tool-header nav a[aria-current=page] .nav-ico{background:linear-gradient(115deg,color-mix(in srgb,var(--nav) 85%,#fff),color-mix(in srgb,var(--nav) 70%,#3a2360));border-color:color-mix(in srgb,var(--nav) 60%,#fff);color:#20123a;box-shadow:0 0 14px -2px var(--nav)}
+  html .chart-lab .nfl-tool-header nav .nav-long{display:none}
+  html .chart-lab .nfl-tool-header nav .nav-short{display:block}
+  html .chart-lab .nfl-tool-header nav[style*="7"] :is(a,button){font-size:.7rem}
+  html .chart-lab .nfl-tool-header nav[style*="7"] .nav-ico{width:34px}
+}
+@media(prefers-reduced-motion:reduce){html .chart-lab .nfl-tool-header nav :is(a,button){transition:none}}
