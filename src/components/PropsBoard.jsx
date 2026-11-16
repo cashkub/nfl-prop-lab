@@ -126,6 +126,5 @@ export default function PropsBoard({gameFilter,fixedGame,title = fixedGame ? 'Ma
     </tr>)}</tbody></table></div>
     {!filtered.length && <p className="board-foot">No saved props match these filters.</p>}
     {filtered.length>limit && <button className="outline-button" onClick={()=>setLimit(limit+30)}>Show More Props</button>}
-    <p className="board-foot">Last 10 and Model Estimate use prior player games. Model Estimate recalculates for the selected line; sportsbook odds are used only when they match that exact line. — means unavailable.</p>
   </section>;
 }

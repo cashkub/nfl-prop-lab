@@ -47,7 +47,7 @@ export default function WorkloadUsage({players, games, position}) {
       return <div key={stat}><dt>{label}</dt><dd>{team > 0 ? <><small>{player} / {team}</small> {(100 * player / team).toFixed(1)}%</> : '—'}</dd></div>;
     })}</dl>
     <h3>Scoring-Area Touches</h3>
-    <p>Carries + Receptions From The Opponent’s 20 Or Closer And 5 Or Closer · {covered.length} Of {games.length} Games With Play Data</p>
+    <p>Inside the 20 and inside the 5 · {covered.length} of {games.length} games</p>
     <dl>{[[3,'Inside The 20'],[4,'Inside The 5']].map(([index,label]) =>
       <div key={index}><dt>{label}</dt><dd>{covered.length ? covered.reduce((sum,g) => sum + g.scoringChances[index], 0) : '—'}</dd></div>
     )}</dl>

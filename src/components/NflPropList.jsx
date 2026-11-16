@@ -132,7 +132,7 @@ export default function NflPropList({players,roster,schedule,season,books,market
         <ChartSelect label="Side" value={side} onChange={setSide}><option value="over">Over</option><option value="under">Under</option></ChartSelect>
       </div>
       </details>
-      <p className="prop-list-note">{filtered.length} props · {sort ? 'sorted by '+columns[sort.column].label.toLowerCase()+(sort.asc?' (low to high)':' (high to low)') : 'DraftKings lines first, biggest model edge on top'}. Tap a header to sort, or a player to open their charts.</p>
+      <p className="prop-list-note">{filtered.length} props · {sort ? 'sorted by '+columns[sort.column].label.toLowerCase()+(sort.asc?' (low to high)':' (high to low)') : 'biggest edge first'}</p>
       {filtered.length>0 && <div className="history-scroll prop-table-scroll" role="region" aria-label="Sortable NFL Prop List" tabIndex="0">
         <SortableTable quietSort className="prop-research-table" headers={columns.map(c=>c.label)} rows={filtered} limit={limit}
           values={r=>columns.map(c=>c.value(r))} sort={sort} onSort={setSort}
@@ -141,7 +141,7 @@ export default function NflPropList({players,roster,schedule,season,books,market
             {columns.map(c=><td key={c.label}>{c.render?c.render(r):c.value(r)}</td>)}
           </tr>}/>
       </div>}
-      {filtered.length>0 && <p className="prop-list-note">Edge = model chance minus the chance the DraftKings price needs to break even, in percentage points. Green means the model beats the price by 2+ points. Edge needs 4+ games and isn't shown for anytime TDs. Hit rates use up to 10 prior {venue==='H'?'home games':venue==='A'?'away games':'games'} this season. Last 5 runs oldest to newest · green = hit · red = miss · gold = push.</p>}
+      {filtered.length>0 && <p className="prop-list-note">Edge = model chance minus the price’s break-even. Last 5: green hit · red miss · gold push.</p>}
       {!filtered.length && <p>No upcoming props match these filters.</p>}
       {filtered.length>limit && <button className="prop-list-more" onClick={()=>setLimit(limit+24)}>Show More Props</button>}
     </>}

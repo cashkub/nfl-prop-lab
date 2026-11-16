@@ -58,10 +58,10 @@ function RecordPick({row}){
       <ChevronDown className="mr-chevron" size={18}/>
     </button>
     <div className="mr-pick-glance">
-      <span className="mr-glance-date"><CalendarDays size={13}/>{Number.isFinite(kickoff)?dateLabel.format(new Date(kickoff)):row.date||'—'} · {recordPeriod(row,'nfl') ? periodLabel(recordPeriod(row,'nfl'),'nfl') : 'NFL'} · {locked?'Locked':'Pregame'}{!locked && Number.isFinite(published)?' · updated '+new Date(published).toLocaleString():''}</span>
+      <span className="mr-glance-date"><CalendarDays size={13}/>{Number.isFinite(kickoff)?dateLabel.format(new Date(kickoff)):row.date||'—'} · {recordPeriod(row,'nfl') ? periodLabel(recordPeriod(row,'nfl'),'nfl') : 'NFL'} · {locked?'Locked':'Pregame'}</span>
       {lineMove(row)&&lineMove(row).direction!=='none'&&<span className={`mr-line-move ${lineMove(row).direction}`}>{moveText(lineMove(row))}</span>}
       <span className="mr-glance-form"><small>PRE-GAME FORM</small><PregameForm values={row.values} line={row.line} side={row.side} touchdown={row.kind==='touchdown'} label={row.label}/></span>
-      <span className="mr-glance-prediction"><small>MODEL EST. HIT RATE</small><b>{rateText(row.modelHitRate)} <i>V2 estimate · {observed==null?'prior rate —':`${rateText(observed)} observed · ${row.hits??'—'}/${row.total||history.length||'—'}`}</i></b></span>
+      <span className="mr-glance-prediction"><small>MODEL EST. HIT RATE</small><b>{rateText(row.modelHitRate)} <i>{observed==null?'':`${row.hits??'—'} of ${row.total||history.length||'—'} prior`}</i></b></span>
     </div>
     {open&&<div className="mr-detail-grid">
       <section className="mr-detail-block"><h3><Activity size={15}/> Pregame Performance</h3><dl>
@@ -86,7 +86,6 @@ function RecordPick({row}){
         <div><dt>Last {history.length||0} Results</dt><dd>{history.length?history.join(' · '):'Unavailable'}</dd></div>
         <div><dt>Published</dt><dd>{Number.isFinite(published)?new Date(published).toLocaleString():'—'}</dd></div>
       </dl></section>
-      <p className="mr-caveat">This is the evidence captured with the published pick. Historical hit rate and model ranking are separate measures; neither guarantees the result.</p>
     </div>}
   </article>;
 }
@@ -124,17 +123,15 @@ export default function ModelRecordPicks({rows=[],kind='props',emptyMessage=''})
   const moves=lineMoveSummary(weekRows);
   const periodTitle=selectedPeriod==='all'?'All Weeks':periodLabel(selectedPeriod,'nfl');
   return <div className="model-record-picks">
-    <RecordHeader title={kind==='touchdowns'?'ANYTIME TOUCHDOWN':'PLAYER PROP'} icon={kind==='touchdowns'?Target:TrendingUp}>
-      Each pick keeps its published line, available odds, model estimate, and pregame evidence.
-    </RecordHeader>
+    <RecordHeader title={kind==='touchdowns'?'ANYTIME TOUCHDOWN':'PLAYER PROP'} icon={kind==='touchdowns'?Target:TrendingUp}/>
     {emptyMessage&&<p className="record-v2-empty mr-empty-record-note">{emptyMessage}</p>}
-    <div className="mr-period-select"><label><CalendarDays size={16}/><span>WEEKLY RECORD VIEW</span><FilterMenu aria-label="Select week for record summary" value={selectedPeriod} onChange={e=>setPeriod(e.target.value)}><option value="all">All Weeks</option>{periods.map(value=><option value={value} key={value}>{periodLabel(value,'nfl')}</option>)}</FilterMenu></label><small>Official V2 picks only · pending picks are not counted as wins or losses.</small></div>
+    <div className="mr-period-select"><label><CalendarDays size={16}/><span>WEEKLY RECORD VIEW</span><FilterMenu aria-label="Select week for record summary" value={selectedPeriod} onChange={e=>setPeriod(e.target.value)}><option value="all">All Weeks</option>{periods.map(value=><option value={value} key={value}>{periodLabel(value,'nfl')}</option>)}</FilterMenu></label></div>
     <div className="mr-kpis">
       <SummaryTile icon={Activity} label="ALL-TIME SETTLED RECORD" value={`${allTimeHits}–${allTimeMisses}`} detail={`${allTimeHits+allTimeMisses} graded · ${allTimePush} push · ${allTimeNoStat} no stat · ${allTimePending} pending`} tone="purple"/>
-      <SummaryTile icon={TrendingUp} label="ALL-TIME HIT RATE" value={rate(picks)==null?'—':rateText(rate(picks))} detail="Official V2 locks · pending excluded" tone={rate(picks)==null?'':rate(picks)>=.55?'green':'red'}/>
+      <SummaryTile icon={TrendingUp} label="ALL-TIME HIT RATE" value={rate(picks)==null?'—':rateText(rate(picks))} detail="Graded picks only" tone={rate(picks)==null?'':rate(picks)>=.55?'green':'red'}/>
       <SummaryTile icon={Target} label={`${periodTitle.toUpperCase()} RECORD`} value={`${weekHits}–${weekMisses}`} detail={`${weekHits+weekMisses} graded · ${weekPush} push · ${weekNoStat} no stat · ${weekPending} pending`} tone="purple"/>
-      <SummaryTile icon={Shield} label={`${periodTitle.toUpperCase()} HIT RATE`} value={rate(weekRows)==null?'—':rateText(rate(weekRows))} detail="Selected week · pending excluded" tone={rate(weekRows)==null?'':rate(weekRows)>=.55?'green':'red'}/>
-      {moves.total>0&&<SummaryTile icon={Activity} label="LINE MOVED OUR WAY" value={`${moves.with} of ${moves.total}`} detail="Picks where the line or price moved toward our side after publishing · an early sign of a sharp pick" tone={moves.with/moves.total>=.5?'green':'red'}/>}
+      <SummaryTile icon={Shield} label={`${periodTitle.toUpperCase()} HIT RATE`} value={rate(weekRows)==null?'—':rateText(rate(weekRows))} detail="Graded picks only" tone={rate(weekRows)==null?'':rate(weekRows)>=.55?'green':'red'}/>
+      {moves.total>0&&<SummaryTile icon={Activity} label="LINE MOVED OUR WAY" value={`${moves.with} of ${moves.total}`} detail="After the pick was published" tone={moves.with/moves.total>=.5?'green':'red'}/>}
     </div>
     <section className="mr-archive">
       <div className="mr-section-title"><div><span className="mr-eyebrow">PICK ARCHIVE</span><h2>PUBLISHED PICKS</h2></div><span className="mr-count">{filtered.length} RECORDS</span></div>
@@ -146,7 +143,7 @@ export default function ModelRecordPicks({rows=[],kind='props',emptyMessage=''})
         <label><TrendingUp size={15}/> LINE TYPE <FilterMenu aria-label="Filter by line source" value={source} onChange={e=>setSource(e.target.value)}><option value="all">All Lines</option><option value="average">Average Lines</option><option value="unavailable">Odds Unavailable</option><option value="book">Sportsbook Lines</option></FilterMenu></label>
         <label className="mr-search"><Search size={16}/><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search player, team, market…" aria-label="Search picks"/></label>
       </div>
-      <div className="mr-totals"><strong><i>{hits} HIT</i><b>{misses} MISS</b><span>{push} PUSH</span><em>{pending} PENDING</em></strong><small>Hit rate counts only graded wins and losses. Pushes, no-stat games, and pending picks are excluded.</small></div>
+      <div className="mr-totals"><strong><i>{hits} HIT</i><b>{misses} MISS</b><span>{push} PUSH</span><em>{pending} PENDING</em></strong></div>
       <div className="mr-pick-list">{filtered.length?filtered.map((row,index)=><React.Fragment key={`${row.gameId}-${row.playerId}-${row.metric}-${row.rank}-${index}`}>
         {(index===0||slateDay(filtered[index-1])!==slateDay(row))&&<h3 className="mr-day-heading">{slateHeading(row)}<small>{filtered.filter(r=>slateDay(r)===slateDay(row)).length} picks · ranked for this day</small></h3>}
         <RecordPick row={row}/></React.Fragment>):<div className="mr-empty">No archived picks match this selection.</div>}</div>

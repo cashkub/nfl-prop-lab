@@ -62,6 +62,6 @@ export default function LeagueHome({hero,record=[],sections=[],games,note}){
       <h3 className="lh-heading">{games.title}{games.note?<small>{games.note}</small>:null}<a href={games.href}>{games.linkLabel||'All games'}</a></h3>
       <div className="lh-games">{games.rows.map(row=><GameRow key={row.id} row={row} sport={games.sport} href={games.href}/>)}</div>
     </section>}
-    <p className="lh-note">{note||'Picks lock at each game’s kickoff. Percentages are the model’s estimated chance, not a guarantee.'}</p>
+    <p className="lh-note">{note||'Picks lock at kickoff.'}</p>
   </div>;
 }

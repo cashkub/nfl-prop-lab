@@ -11,9 +11,9 @@ import {SummaryTile} from './ModelRecordPicks.jsx';
 import './ModelRecordPicks.css';
 
 const headers={
-  moneyline:{icon:Trophy,description:'The model’s pregame winner and saved odds are graded against the final score.'},
-  total:{icon:ArrowUpDown,description:'Final combined points are graded against the model’s saved over or under and game total.'},
-  spread:{icon:Scale,description:'The final margin is graded against the team and point spread saved before kickoff.'}
+  moneyline:{icon:Trophy},
+  total:{icon:ArrowUpDown},
+  spread:{icon:Scale}
 };
 const eastern={timeZone:'America/New_York'};
 const dayKey=r=>new Date(Date.parse(r.kickoff)).toLocaleDateString('en-CA',eastern);
@@ -76,7 +76,6 @@ function GamePick({row,market,rank}){
           <div key={label}><dt>{label}</dt><dd>{value?.length===2?`${row.away} ${value[0].toFixed(1)} · ${row.home} ${value[1].toFixed(1)}`:'Not saved'}</dd></div>)}
         <div><dt>Final Score</dt><dd>{final?`${row.away} ${final[0]} · ${row.home} ${final[1]}`:'Pending'}</dd></div>
       </dl></section>
-      <p className="mr-caveat">This is the pick and projection saved before kickoff. In past testing the betting market was more accurate than this game model.</p>
     </div>}
   </article>;
 }
@@ -97,8 +96,8 @@ export default function GameMarketRecord({rows,market}){
   const detail=t=>`${t.graded} graded · ${t.Push} push · ${t.Pending} pending`;
   let rank=0,lastDay='';
   return <div className="model-record-picks">
-    <RecordHeader title={gameMarkets[market].toUpperCase()} icon={headers[market].icon}>{headers[market].description}</RecordHeader>
-    <div className="mr-period-select"><label><CalendarDays size={16}/><span>WEEKLY RECORD VIEW</span><FilterMenu aria-label="Select week for record summary" value={selected} onChange={e=>setWeek(e.target.value)}><option value="all">All Weeks</option>{weeks.map(w=><option key={w} value={w}>{periodLabel(w,'nfl')}</option>)}</FilterMenu></label><small>Pregame picks only · pending games are not counted as wins or losses.</small></div>
+    <RecordHeader title={gameMarkets[market].toUpperCase()} icon={headers[market].icon}></RecordHeader>
+    <div className="mr-period-select"><label><CalendarDays size={16}/><span>WEEKLY RECORD VIEW</span><FilterMenu aria-label="Select week for record summary" value={selected} onChange={e=>setWeek(e.target.value)}><option value="all">All Weeks</option>{weeks.map(w=><option key={w} value={w}>{periodLabel(w,'nfl')}</option>)}</FilterMenu></label></div>
     <div className="mr-kpis">
       <SummaryTile icon={Activity} label="ALL-TIME SETTLED RECORD" value={`${total.Win}–${total.Loss}`} detail={detail(total)} tone="purple"/>
       <SummaryTile icon={TrendingUp} label="ALL-TIME WIN RATE" value={pct(total.rate)} detail="Graded picks · pending excluded" tone={rateTone(total.rate)}/>
@@ -110,7 +109,7 @@ export default function GameMarketRecord({rows,market}){
       <div className="mr-filters">
         <label><Filter size={15}/> RESULT <FilterMenu aria-label="Filter by result" value={status} onChange={e=>setStatus(e.target.value)}>{['all','Win','Loss','Push','Pending'].map(value=><option key={value} value={value}>{value==='all'?'All Results':value}</option>)}</FilterMenu></label>
       </div>
-      <div className="mr-totals"><strong><i>{shown.Win} WIN</i><b>{shown.Loss} LOSS</b><span>{shown.Push} PUSH</span><em>{shown.Pending} PENDING</em></strong><small>Win rate counts only graded wins and losses. Pushes and pending games are excluded.</small></div>
+      <div className="mr-totals"><strong><i>{shown.Win} WIN</i><b>{shown.Loss} LOSS</b><span>{shown.Push} PUSH</span><em>{shown.Pending} PENDING</em></strong></div>
       <div className="mr-pick-list">{visible.length?visible.map(row=>{
         const day=dayKey(row),first=day!==lastDay;
         if(first){rank=0;lastDay=day;}

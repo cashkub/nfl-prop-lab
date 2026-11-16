@@ -47,7 +47,6 @@ export function MatchReport({game:g,away,home,college=false,names={}}){
         ...(!college?[['Injury Adjustment',s=>signed(-s.injuries)]]:[]),
         ['Team Projection',s=>s.score.toFixed(1)]
       ]} values={([name,value])=>[name,Number(value(model.a)),Number(value(model.h))]} renderRow={([name,value])=><tr key={name}><th>{name}</th><td>{value(model.a)}</td><td>{value(model.h)}</td></tr>}/>
-      <p className="report-note">Start with adjusted offense. Add how many points the opponent allows above or below the league average of {away.baseline.toFixed(1)}, then apply the listed adjustments. Figures are rounded for display.</p>
       {[model.a,model.h].map(s=><div className="team-history" key={s.team}><b>{label(s.team)} · {s.rating.games} Games</b><small>Adjusted points allowed {s.rating.defense.toFixed(1)} · Schedule strength {signed(s.rating.scheduleStrength)} pts versus average</small><small>Wins against {s.rating.wins.map(label).join(', ') || 'no opponents yet'}.</small></div>)}
     </details></>:<p>Projection Pending · {college?'Each team needs a completed game before the selected day.':'Each team needs three completed games.'}</p>}
     {!college && !model && <MarketComparison game={g}/>}

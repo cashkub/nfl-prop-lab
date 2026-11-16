@@ -155,7 +155,7 @@ function MatchResearch({players,game,player,metric,line,direction,history,defens
       <div><dt>Position group allowed per game</dt><dd data-vs-league={leagueComparison(defense?.average,leagueMean,direction)}>{formatNumber(defense?.average)} {unit}</dd></div>
       <div><dt>League average allowed to {player.position}s</dt><dd>{formatNumber(leagueMean)} {unit}</dd></div>
       <div><dt>Player vs. {game.opponent} in selected history</dt><dd>{against.length?<>{line!=null && <span style={rateStyle(headToHead.rate)}>{headToHead.hits}/{against.length} Hits · </span>}{formatNumber(headToHead.average)} {unit} Avg</>:'No Meetings'}</dd></div></dl>
-    <p className="method">{game.season} · Position Totals Compared With The League Average.{defense?' Based on '+defense.games+' opponent games.':''}</p>
+    <p className="method">{game.season} vs league average{defense?' · '+defense.games+' games':''}</p>
     <h3>{game.opponent} Red Zone Defense</h3>
     <dl><div><dt>Touchdown Rate Allowed</dt><dd>{redZone?.trips ? (100*redZone.touchdowns/redZone.trips).toFixed(1)+'%' : '—'}</dd></div>
     </dl>
@@ -163,7 +163,7 @@ function MatchResearch({players,game,player,metric,line,direction,history,defens
       <div className="zone-track" aria-hidden="true">{outcomes.map(([label,count,color])=><span key={label} style={{flex:count,background:color}}/>)}</div>
       <ul>{outcomes.map(([label,count,color])=><li key={label}><i style={{background:color}}/>{label} <strong>{count}</strong> · {(100*count/redZone.trips).toFixed(1)}%</li>)}</ul>
     </div>}
-    <p className="method">{redZone ? redZone.touchdowns+' TDs Allowed On '+redZone.trips+' Red Zone Trips · '+redZone.games+' Games With Play Data Before Week '+game.week : 'No Earlier Red Zone Play Data Available.'}</p>
+    <p className="method">{redZone ? redZone.touchdowns+' TDs allowed on '+redZone.trips+' red zone trips · '+redZone.games+' games' : 'No red zone data yet.'}</p>
     <h3>Last Three Games Against {player.position}s</h3>
     {prior.length?<div className="history-scroll"><table><thead><tr><th>Game</th><th>Offense</th><th>Group Total</th><th>Leading Player</th></tr></thead><tbody>
       {prior.map(({game:g,total,leader})=><tr key={g.gameId}><td>{gameDate(g)} · W{g.week}</td><td><span className="log-table-team"><TeamLogo className="chart-logo" team={g.team}/>{g.team}</span></td><td data-vs-league={leagueComparison(total,leagueMean,direction)}>{total} {unit}</td><td>{leader && leader.value>0?leader.name+' · '+leader.value+' '+unit:'—'}</td></tr>)}
@@ -288,7 +288,6 @@ export default function NflCharts({players,seasons,slate,venue,onVenue,resetLine
         <div><small>Model chance</small>{line==null?<b>Set a line</b>:<><b style={rateStyle(modelRate.rate)}>{formatRate(modelRate.rate)}</b><small>smoothed · {modelRate.sample} prior games</small></>}</div>
         <div><small>Edge vs DraftKings</small>{priceNeeded==null||line==null||!Number.isFinite(modelRate.rate)?<><b className="edge-none">—</b><small>{quote&&Number(quote.point)===Number(line)?'needs 4+ games':'no matching price'}</small></>:<><b className={modelRate.rate-priceNeeded>=.02?'edge-pos':modelRate.rate-priceNeeded<=-.02?'edge-neg':''}>{modelRate.rate-priceNeeded>0?'+':''}{((modelRate.rate-priceNeeded)*100).toFixed(1)}</b><small>needs {formatRate(priceNeeded)} at {priceText(quote[direction])}</small></>}</div>
       </div>
-      <details className="model-rate-info"><summary>How the model chance works</summary><p>It recalculates for the selected line using the same base estimate as Top Looks: smoothed prior results and a weighted season/recent projection. No-vig sportsbook odds are included only when the selected line exactly matches the quote; for alternate or average lines without matching odds, that input stays neutral. Matchup-specific weather, injury, and red-zone signals appear in Top Looks when relevant. The hit rate is what the player actually did in the selected games. Edge is the model chance minus the chance the DraftKings price needs to break even; it only shows when your line matches the posted line.</p></details>
 
     </section>
     <section className="lab-block"><h2>Game By Game</h2>

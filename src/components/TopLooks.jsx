@@ -16,7 +16,6 @@ import {rateStyle,defenseRankStyle} from './HitRate.jsx';
 import FilterMenu from './FilterMenu.jsx';
 import './TopLooks.css';
 
-import propWeights from '../lib/propWeights.js';
 import {MIN_PROP_LINE,MAX_PROP_PRICE,buildTopLooks,dayKey,dayLabel,fmtShare,averageLineLabel,projectionReason,gameContext} from '../lib/topLooksModel.js';
 export default function TopLooks({players,schedule,books,season,now,loading,error,onOpen}) {
   const future=useMemo(()=>schedule.filter(game=>Date.parse(game.kickoff)>now),[schedule,now]);
@@ -69,7 +68,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
   return <main className="top-looks chart-lab"><NflToolHeader active="top"/>
     <div className="top-looks-heading">
       <div>
-        <p>{type==='anytime'?'The players most likely to score a touchdown, ranked by the model’s chance to score whatever the price. Players who lost their role are left out; players back from injury stay in.':'The player props most likely to hit, ranked by chance. Each chance starts from the DraftKings line and moves toward the model only as far as past results justify. One-catch and few-yard props are left out. A Value tag means the chance also beats the price.'}</p></div>
+        <p>{type==='anytime'?'Ranked by chance to score.':'Ranked by chance to hit.'}</p></div>
       <span className="slate-count">{picks.length} QUALIFIED</span>
     </div>
     <section className="top-filter panel">
@@ -82,10 +81,8 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
       <div className="pick-type" role="group" aria-label="Pick Type"><span>PICK TYPE</span><div><button type="button" aria-pressed={type==='anytime'} onClick={()=>setType('anytime')}>Anytime Touchdowns</button><button type="button" aria-pressed={type==='props'} onClick={()=>setType('props')}>Player Props</button></div></div>
       <span>{isReplay?`Week 9 Replay · ${displayedGameCount} archived games`:`${kickDate} · ${slate.length} ${slate.length===1?'game':'games'}`}</span>
       <details className="model-guide"><summary aria-label="What The Model Considers" title="What The Model Considers"><Info size={17}/></summary><div className="model-guide-panel"><b>HOW TOP LOOKS RANKS</b>{type==='anytime'
-  ?<p>Touchdown looks rank by the model’s chance to score, whatever the price. The chance comes from carries and targets, red-zone touches, snap share and position, checked against past seasons. Players who lost their role are left out; players back from injury stay in.</p>
-  :<><p>Prop looks rank by chance to hit. The chance starts from the DraftKings no-vig line and moves toward the model’s own estimate (recent results, projection, weather, injuries) by {Math.round(propWeights.weight*100)}%. That share is re-measured every update against {propWeights.graded} graded DraftKings props and grows only if the model proves itself.</p>
-  <p>Left out: lines below {MIN_PROP_LINE.receptions} receptions, {MIN_PROP_LINE.receivingYards} receiving or rushing yards, or {MIN_PROP_LINE.rushingAttempts} rushing attempts, and prices steeper than {MAX_PROP_PRICE}. One pick per player. Value means the chance beats the price’s break-even rate by 2 points or more.</p></>}
-<small>A date appears only when it has games or published picks. Percentages are estimates, not guarantees.</small></div></details>
+  ?<p>Ranked by the model’s chance to score, whatever the price.</p>
+  :<p>Ranked by chance to hit. Skips lines under {MIN_PROP_LINE.receptions} catches or {MIN_PROP_LINE.receivingYards} yards and prices steeper than {MAX_PROP_PRICE}. Value = the chance beats the price.</p>}</div></details>
     </section>
     {isReplay&&<aside className="top-replay-notice" role="note"><strong>HISTORICAL V2 REPLAY · WEEK 9</strong><p>{replayData.disclaimer}</p><small>{replayData.coverageNote} Replay selections and outcomes stay outside the official Model Record.</small></aside>}
     {loading||error||(!isReplay&&!archive.rows)?<p>{error||(archive.error?'Published picks unavailable.':'Loading Top Looks…')}</p>:isReplay&&!replayData?<p>Loading Week 9 replay…</p>:picks.length?
@@ -136,10 +133,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
                 <b>WHY THE MODEL LIKES THIS PICK</b>
                 <div className="pick-reason-grid">
                   <section className="favorite-reason"><strong>TOP REASON · {pick.favoriteReason.label.toUpperCase()}</strong><span>{pick.favoriteReason.detail}</span></section>
-                  {pick.touchdownModel&&<section><strong>RANKING · CHANCE TO SCORE</strong><span>Ranked #{displayRank} of {displayCount} by the model's chance to score, whatever the price. The chance comes from carries and targets, red-zone touches, snap share and position, checked against past seasons.</span></section>}
-                  {pick.chanceRanked&&<section><strong>RANKING · CHANCE TO HIT</strong><span>Ranked #{displayRank} of {displayCount} by chance to hit. The chance starts from the DraftKings line and moves toward the model only as far as past results justify.{pick.value?' Tagged Value because the chance beats what the price needs.':''}</span></section>}
-                  {!pick.touchdownModel&&!pick.chanceRanked&&<section><strong>RANKING SCORE · {pick.rankScore}/100</strong><span>Ranked #{displayRank} of {displayCount}. This comparative score shows how strongly the available signals support the pick; it is not a hit probability. Tap the information button beside the filters for the full scoring method.</span></section>}
-                  <section><strong>HISTORICAL RESULTS</strong><span>{pick.side.toUpperCase()} hit {pick.hits} of {pick.history.length} prior games (<b style={rateStyle(pick.hits/pick.history.length)}>{formatRate(pick.hits/pick.history.length)} prior hit rate</b>); {pick.recentHits} of {pick.recent.length} in the {recentLabel}.</span></section>
+                                    <section><strong>HISTORICAL RESULTS</strong><span>{pick.side.toUpperCase()} hit {pick.hits} of {pick.history.length} prior games (<b style={rateStyle(pick.hits/pick.history.length)}>{formatRate(pick.hits/pick.history.length)} prior hit rate</b>); {pick.recentHits} of {pick.recent.length} in the {recentLabel}.</span></section>
                   <section><strong>PROJECTION</strong><span>{projectionReason(pick)}</span></section>
                   {pick.volumeSignal>.1&&<section><strong>{shareLabel.toUpperCase()}</strong><span>{fmtShare(pick.share.average)} of team {pick.usageKey} across {pick.share.count} recent games{pick.share.trend!=null?'; recent share '+(pick.share.trend>0?'+':'')+(pick.share.trend*100).toFixed(1)+' percentage points':''}.</span></section>}
                   {pick.usageTrend!=null&&pick.usageTrend*(pick.side==='over'?1:-1)>0&&<section><strong>RECENT WORKLOAD</strong><span>{pick.usageKey}: {pick.usageTrend>0?'+':''}{pick.usageTrend.toFixed(1)} per game over the last 3 compared with the previous 3.</span></section>}
@@ -147,7 +141,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
                   {pick.metric==='scoredTDs'&&pick.scoring?.games>0&&(pick.scoring.targetShare!=null||pick.scoring.carryShare!=null)&&<section><strong>RED-ZONE USAGE · {pick.scoring.games} GAMES</strong><span>{pick.scoring.targetShare!=null?'Red-zone target share '+fmtShare(pick.scoring.targetShare):''}{pick.scoring.targetShare!=null&&pick.scoring.carryShare!=null?' · ':''}{pick.scoring.carryShare!=null?'Red-zone carry share '+fmtShare(pick.scoring.carryShare):''}{pick.scoring.redZoneTargets!=null?' · '+pick.scoring.redZoneTargets.toFixed(1)+' targets per game':''}{pick.scoring.redZoneCarries!=null?' · '+pick.scoring.redZoneCarries.toFixed(1)+' carries per game':''}{pick.scoring.redZoneTouches!=null?' · '+pick.scoring.redZoneTouches.toFixed(1)+' touches inside the 20 per game':''}{pick.scoring.inside5Touches!=null?' · '+pick.scoring.inside5Touches.toFixed(1)+' touches inside the 5 per game':''}.</span></section>}
                   {pick.quote.isBookLine&&pick.fairSide!=null&&pick.fairSide>=.52&&<section><strong>{pick.quote.anytime?'ANYTIME TD PRICE':'NO-VIG MARKET'}</strong><span>{pick.quote.anytime?'The listed Yes price implies '+formatRate(pick.fairSide)+' before removing sportsbook margin.':'Market price implies '+formatRate(pick.fairSide)+' for the '+pick.side+' side after removing the two-way vig.'}</span></section>}
                   {pick.weather&&pick.weather.signal>.08&&<section><strong>WEATHER FORECAST</strong><span>{pick.weather.details}. {pick.weather.interpretation}</span></section>}
-                  {context.injuries.length>0&&<section className="injury-reason"><strong>KEY INJURIES</strong><span>{context.injuries.map(item=><span key={item.team+item.role+item.name}>{item.team} {item.role} · {item.name} · {item.status}{item.injury?' · '+item.injury:''}{Number.isFinite(item.volume)?' · '+item.volume.toFixed(1)+' workload per game':''}{item.selected?' · THIS PLAYER':''}</span>)}<small>Role ranks use recent team workload; only key skill-position reports are shown.</small></span></section>}
+                  {context.injuries.length>0&&<section className="injury-reason"><strong>KEY INJURIES</strong><span>{context.injuries.map(item=><span key={item.team+item.role+item.name}>{item.team} {item.role} · {item.name} · {item.status}{item.injury?' · '+item.injury:''}{Number.isFinite(item.volume)?' · '+item.volume.toFixed(1)+' workload per game':''}{item.selected?' · THIS PLAYER':''}</span>)}</span></section>}
                 </div>
               </div>
           </div>
@@ -155,7 +149,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
         </article></React.Fragment>;
       })}</section>:
       <section className="no-top-picks panel"><h2>No qualified picks for {isReplay?'Week 9 replay':kickDate}</h2>
-        <p>Top Looks ranks DraftKings markets for priced games. Player-average lines are used only for games with no posted markets. A short slate may have fewer than three picks.</p>
+        <p>Check back after the next odds update.</p>
       </section>}
   </main>;
 }
