@@ -24,12 +24,11 @@ function RecordTile({label,wins,losses,pending,href}){
 }
 
 function PickRow({row}){
-  return <li style={{'--club':row.color||'#a775cf'}}>
+  return <li className={row.tone?'is-'+row.tone:''} style={{'--club':row.color||'#a775cf'}}>
     <span className="lh-rank">{row.rank}</span>
     <PlayerPhoto id={row.playerId} name={row.name} url={row.photo} eager/>
     <span className="lh-who"><b>{row.name}</b><small>{row.pick}{row.price?<i> · {row.price}</i>:null}</small>{row.final?<small className={'lh-final '+(row.tone||'')}>{row.final}</small>:null}</span>
-    <Result text={row.status} tone={row.tone}/>
-    <span className="lh-chance"><strong style={row.chanceStyle}>{row.chance}</strong>{row.support?<small>{row.support}</small>:null}</span>
+    <span className="lh-chance"><strong style={row.chanceStyle}>{row.chance}</strong>{row.support?<small>{row.support}</small>:null}<Result text={row.status} tone={row.tone}/></span>
   </li>;
 }
 

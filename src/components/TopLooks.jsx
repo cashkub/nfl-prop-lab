@@ -100,16 +100,17 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
         const startsReplayDay=isReplay&&(index===0||picks[index-1]?.replayDayDate!==pick.replayDayDate);
         const whyOpen=openWhy===pickKey;
         const pickOpen=openPick===pickKey;
+        const pickState=pick.result?({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||'nostat'):pick.live?'live':Date.parse(pick.game.kickoff)<=now&&!isReplay?'started':'pending';
         const rowPrice=pick.quote.anytime?pick.quote.over:pick.quote[pick.side];
-        return <React.Fragment key={(isReplay?'replay-':'')+pick.game.id+pick.player.id+pick.metric+pick.side}>{startsReplayDay&&<div className="replay-day-heading"><strong>{pick.replayDayLabel}</strong><span>{pick.replayGameCount} games · pregame snapshot {new Date(pick.replayAsOf).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} ET</span></div>}<article className={"top-pick panel"+(pickOpen?" is-open":"")} key={pick.game.id+pick.player.id+pick.metric+pick.side} style={{'--club':teamColor(pick.player.team)||'#a775cf'}}>
+        return <React.Fragment key={(isReplay?'replay-':'')+pick.game.id+pick.player.id+pick.metric+pick.side}>{startsReplayDay&&<div className="replay-day-heading"><strong>{pick.replayDayLabel}</strong><span>{pick.replayGameCount} games · pregame snapshot {new Date(pick.replayAsOf).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} ET</span></div>}<article className={"top-pick panel is-"+pickState+(pickOpen?" is-open":"")} key={pick.game.id+pick.player.id+pick.metric+pick.side} style={{'--club':teamColor(pick.player.team)||'#a775cf'}}>
           <button className="pick-row" type="button" aria-expanded={pickOpen} onClick={()=>setOpenPick(pickOpen?'':pickKey)}>
             <span className="pick-row-rank">{displayRank}</span>
             <PlayerPhoto id={pick.player.id} name={pick.player.name} url={pick.player.photo}/>
             <span className="pick-row-who"><b>{pick.player.name}</b><small>{pick.quote.anytime?'Anytime touchdown':`${pick.side==='under'?'Under':'Over'} ${pick.line} ${String(markets[pick.metric]).toLowerCase()}`}{pick.quote.isBookLine&&Number.isFinite(rowPrice)?<i> · {priceText(rowPrice)}</i>:null}</small>
-              {pick.finalStat?<small className={'pick-row-final '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||(pick.live?'live':''))}>{pick.finalStat}</small>:null}
+              {pick.finalStat?<small className={'pick-row-final '+pickState}>{pick.finalStat}</small>:null}
               <small className="pick-row-game"><TeamLogo team={pick.player.team}/>{pick.player.team} vs {pick.game.opponent} · {new Date(pick.game.kickoff).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/New_York'})}</small></span>
             {pick.value?<em className="pick-row-value" title="The model's chance beats what the price needs">Value</em>:null}
-            <span className="pick-row-chance"><b style={rateStyle(pick.chance)}>{formatRate(pick.chance)}</b><small>{pick.quote.anytime?'to score':'model chance'}</small>{pick.result?<em className={'pick-row-result '+({Hit:'hit',Miss:'miss',Push:'push'}[pick.result]||'')}>{pick.result}</em>:pick.live?<em className="pick-row-result live">Live</em>:Date.parse(pick.game.kickoff)<=now&&!isReplay?<em className="pick-row-result">Started</em>:null}</span>
+            <span className="pick-row-chance"><b style={rateStyle(pick.chance)}>{formatRate(pick.chance)}</b><small>{pick.quote.anytime?'to score':'model chance'}</small><em className={'pick-row-result '+pickState}>{pick.result||{live:'Live',started:'In progress',pending:'Pending'}[pickState]}</em></span>
             <ChevronDown className="pick-row-chevron" size={18}/>
           </button>
           {pickOpen&&<div className="pick-body">
