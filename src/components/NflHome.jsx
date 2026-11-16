@@ -60,7 +60,7 @@ export default function NflHome(){
   const market=(name,label)=>tally(saved.filter(r=>r.markets[name]),r=>gameResult(r,name),label);
   const shown=day||gameDay;
   return <LeagueHome
-    hero={{league:'NFL',photo:'/preview/assets/nfl-action.jpg',accent:'#b98aff',date:shown?dayTitle(shown):'',
+    hero={{league:'NFL',photo:'/preview/assets/nfl-scene.svg',accent:'#b98aff',date:shown?dayTitle(shown):'',
       lines:[slate.length?plural(slate.length,'game'):'',props.length+touchdowns.length?plural(props.length+touchdowns.length,'published pick'):'']}}
     record={[tally(published.filter(r=>r.kind==='prop'),r=>r.result,'Player props'),tally(published.filter(r=>r.kind==='touchdown'),r=>r.result,'Touchdowns'),
       market('moneyline','Moneyline'),market('spread','Spread'),market('total','Over/under')]}
