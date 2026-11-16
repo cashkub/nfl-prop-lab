@@ -28,7 +28,7 @@ const pickRow=row=>{
   const status=row.result||(row.live?'Live':Date.parse(row.kickoff)<=Date.now()?'Started':'');
   return {id:row.id,rank:row.rank,name:row.player,playerId:row.playerId,photo:row.photo,color:teamColor(row.team),
     pick:row.kind==='touchdown'?'Anytime touchdown':`${row.side==='under'?'Under':'Over'} ${row.line} ${String(row.label||'').toLowerCase()}`,
-    price:Number.isFinite(row.price)?priceText(row.price):'',status,tone:row.result?tone(row.result):row.live?'live':'',final:statLine(row),
+    price:Number.isFinite(row.price)?priceText(row.price)+(row.value?' · value':''):'',status,tone:row.result?tone(row.result):row.live?'live':'',final:statLine(row),
     chance:formatRate(row.modelHitRate),chanceStyle:rateStyle(row.modelHitRate),
     support:row.total?`${row.hits} of last ${row.total}`:''};
 };

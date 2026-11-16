@@ -79,3 +79,4 @@ html .chart-lab .pick-row,html .chart-lab .pick-row *{text-transform:none}
 .pick-row-result.live{background:#17352a;color:#8ee6b0}
 .pick-row-who .pick-row-final{font-weight:700;color:#e6dcef}
 .pick-row-who .pick-row-final:is(.hit,.live){color:#8ee6b0}.pick-row-who .pick-row-final.miss{color:#f5a3ad}.pick-row-who .pick-row-final.push{color:#f2cf73}
+.pick-row-value{flex:none;font-style:normal;font-size:.68rem;font-weight:800;padding:.15rem .5rem;border-radius:99px;background:#c9a3f5;color:#1a1024}

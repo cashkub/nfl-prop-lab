@@ -25,6 +25,11 @@ function defenseFit(rank,total,side,metric,position){
   }
   return '';
 }
+// Smallest line worth listing, by market.
+export const MIN_PROP_LINE={receptions:2.5,receivingYards:19.5,rushingYards:19.5,rushingAttempts:6.5,passingYards:99.5};
+// Prices steeper than this pay too little to be worth listing.
+export const MAX_PROP_PRICE=-250;
+const VALUE_EDGE=.02;
 const impliedProbability=price=>Number.isFinite(price)?(price>0?100/(price+100):Math.abs(price)/(Math.abs(price)+100)):null;
 
 function weatherImpact(game,metric,side){
@@ -286,6 +291,8 @@ export function buildTopLooks({players,slate,books,season,type}) {
         const average=mean(history.map(row=>Number(row.stats[metric]??0)));
         if(!Number.isFinite(quote?.point)&&average<=0)continue;
         const line=Number.isFinite(quote?.point)?quote.point:(type==='anytime'?0.5:Number(average.toFixed(1)));
+        // Low-volume props (one catch, a handful of yards) swing on a single play; leave them out.
+        if(type==='props'&&line<(MIN_PROP_LINE[metric]??0))continue;
         const selectedQuote=quote?{...quote,isBookLine:true}:{point:line,over:null,under:null,isBookLine:false,anytime:type==='anytime'};
         let pointProjection;
         if(isAnytime){
@@ -313,13 +320,19 @@ export function buildTopLooks({players,slate,books,season,type}) {
   const cap=slate.length===1?3:10;
   // Anytime touchdowns: the players most likely to score, whatever the price.
   if(type==='anytime')return candidates.filter(p=>p.touchdownModel).sort((a,b)=>b.chance-a.chance).slice(0,cap);
-  const ranked=candidates.sort((a,b)=>Number(b.quote.isBookLine)-Number(a.quote.isBookLine)||b.score-a.score);
+  // Player props: the sides most likely to hit. The chance already starts from the
+  // sportsbook's line, so this favors likely outcomes; `value` marks the ones whose
+  // chance also beats the price.
   const used=new Set();
-  return ranked.filter(p=>{
-    const key=p.player.id+'|'+p.metric;
-    if(used.has(key)||p.edge<.015||p.projectionSignal<0||p.score<=2||p.supportCount<1)return false;
-    used.add(key);return true;
-  }).slice(0,cap);
+  return candidates.map(p=>{
+    const price=p.quote[p.side],needed=p.quote.isBookLine?impliedProbability(price):null;
+    return {...p,price,rankScore:Math.round(p.chance*100),chanceRanked:true,value:needed!=null&&p.chance-needed>=VALUE_EDGE};
+  }).filter(p=>p.chance>=.5&&!(Number.isFinite(p.price)&&p.price<MAX_PROP_PRICE))
+    .sort((a,b)=>Number(b.quote.isBookLine)-Number(a.quote.isBookLine)||b.chance-a.chance)
+    .filter(p=>{
+      if(used.has(p.player.id))return false;
+      used.add(p.player.id);return true;
+    }).slice(0,cap);
 }
 
 export {dayKey,dayLabel,fmtShare,averageLineLabel,projectionReason,gameContext};

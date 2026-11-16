@@ -1,4 +1,5 @@
 import {touchdownChance} from './tdModel.js';
+import propWeights from './propWeights.js';
 export const METRICS = {
   passingYards: { label: 'Passing Yards', short: 'PASS YDS', unit: 'yds', defaultLine: 224.5, maximum: 600 },
   rushingAttempts: { label: 'Rushing Attempts', short: 'RUSH ATT', unit: 'att', defaultLine: 14.5, maximum: 60 },
@@ -50,7 +51,14 @@ export const summarize = (games, key, line, direction = 'over') => {
 // Line-specific probability estimate for chart and prop-list views. It combines
 // a small-sample-smoothed historical rate with a season/recent projection.
 // Context signals are optional and included only when the caller has a matching source.
-export function estimateModelHitRate(games,key,line,direction='over',{marketProbability=null,weatherSignal=0,redZoneSignal=0,injurySignal=0,injuryPenalty=0,position=null}={}){
+const logit=p=>Math.log(p/(1-p));
+// Chance after moving from the market's view toward the model's by `weight` (in log-odds).
+export function blendWithMarket(model,market,weight){
+  const m=Math.min(.98,Math.max(.02,model)),f=Math.min(.98,Math.max(.02,market));
+  return 1/(1+Math.exp(-(logit(f)+weight*(logit(m)-logit(f)))));
+}
+
+export function estimateModelHitRate(games,key,line,direction='over',{marketProbability=null,weatherSignal=0,redZoneSignal=0,injurySignal=0,injuryPenalty=0,position=null,marketWeight=null}={}){
   const sample=(games||[]).map(game=>Number(game.stats?.[key]??0)).filter(Number.isFinite);
   if(!sample.length||line==null||!Number.isFinite(Number(line)))return {rate:null,sample:sample.length,hits:0,pushes:0,observed:null,projection:null,marketProbability:null};
   // Anytime touchdowns use their own calibrated model when the position is known.
@@ -73,10 +81,13 @@ export function estimateModelHitRate(games,key,line,direction='over',{marketProb
   const sd=Math.sqrt(variance);
   const signedDistance=sd?(direction==='over'?projection-Number(line):Number(line)-projection)/sd:0;
   const projectionChance=Math.min(.88,Math.max(.12,.5+signedDistance*.18));
-  const market=Number.isFinite(marketProbability)?Math.min(.98,Math.max(.02,marketProbability)):.5;
-  const rate=Math.min(.95,Math.max(.05,.61*posterior+.20*projectionChance+.15*market+
+  // The model's own view, before looking at the sportsbook.
+  const raw=Math.min(.95,Math.max(.05,.61*posterior+.20*projectionChance+.15*.5+
     .035*(Number(weatherSignal)||0)+.035*(Number(redZoneSignal)||0)+.025*(Number(injurySignal)||0)-(Number(injuryPenalty)||0)));
-  return {rate,sample:sample.length,decided,hits,pushes,observed,posterior,projection,projectionChance,marketProbability:Number.isFinite(marketProbability)?marketProbability:null};
+  // With a sportsbook line, start from its no-vig chance and move toward the model only as
+  // far as past results have justified (see scripts/calibrate_props.mjs).
+  const rate=Number.isFinite(marketProbability)?blendWithMarket(raw,marketProbability,marketWeight??propWeights.weight):raw;
+  return {rate,raw,sample:sample.length,decided,hits,pushes,observed,posterior,projection,projectionChance,marketProbability:Number.isFinite(marketProbability)?marketProbability:null};
 }
 
 export const filteredWindow = (games, selected) => selected === 'season' ? games : games.slice(-Number(selected));
