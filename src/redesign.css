@@ -116,3 +116,19 @@ html .chart-lab .lh-chance .lh-result{margin-top:.25rem}
 html .chart-lab .mr-final strong{font-size:.9rem;line-height:1.15;max-width:8.5rem;text-align:right;text-wrap:balance}
 html .chart-lab .mr-pick-head{padding-right:2rem}
 @media(max-width:680px){html .chart-lab :is(.pick-row-final,.lh-final){font-size:.86rem}html .chart-lab .lh-who b{white-space:normal}}
+
+/* Player Charts: same calm treatment as the rest of the site. */
+html .chart-lab .lab-block{background:#18191d;border-color:#26262d;border-radius:.9rem;box-shadow:none}
+html .chart-lab .lab-block>h2,html .chart-lab .lab-block>:is(header,div):first-child>h2{display:flex;align-items:center;gap:.6rem;width:auto;margin:0 0 .9rem;padding:0;border:0;border-radius:0;background:none;box-shadow:none;
+  font:italic 800 1.5rem/1 LabDisplay,Impact,sans-serif;letter-spacing:.01em;text-transform:uppercase;color:#fff;-webkit-text-stroke:0;text-shadow:none}
+html .chart-lab .lab-block>h2::before,html .chart-lab .lab-block>:is(header,div):first-child>h2::before{content:'';flex:none;width:.42rem;height:1.25rem;background:#b98aff;transform:skewX(-9deg)}
+html .chart-lab .lab-block h3{font:750 1.05rem/1.25 system-ui,sans-serif;font-style:normal;text-transform:none;letter-spacing:0;text-shadow:none;-webkit-text-stroke:0}
+html .chart-lab .lab-player{border:1px solid #2a2a32;box-shadow:inset 4px 0 var(--club);border-radius:.9rem;background:linear-gradient(110deg,color-mix(in srgb,var(--club) 16%,#1b1c21),#18191d 62%)}
+html .chart-lab .player-numbers{gap:.5rem;border-top:0;padding-top:.3rem}
+html .chart-lab .player-numbers>div{border:0;border-radius:.6rem;background:#ffffff0a;padding:.6rem .5rem}
+html .chart-lab .player-numbers b{font-size:1.6rem;line-height:1.05;font-variant-numeric:tabular-nums}
+html .chart-lab .player-numbers small{font-size:.74rem;color:#c3b9cd}
+html .chart-lab .kickoff-conditions>div{border:0;background:#ffffff0a}
+html .chart-lab .lab-block :is(table,th,td){border-color:#2c2c34}
+html .chart-lab .lab-block dl>div{border-color:#2c2c34}
+html .chart-lab .lab-controls :is(.chart-select,label),html .chart-lab .chart-disclosure{border-color:#34313d;box-shadow:none}

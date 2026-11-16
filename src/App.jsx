@@ -149,8 +149,19 @@ export default function App() {
     if(page==='analyzer'&&listed&&!listed.has(playerKey(p.name)))return false;
     return chartSlate.allows(code);
   });
-  const player = roster.find(p => p.id === selectedId) ||
-    roster.find(p => ['WR','QB','RB','TE'].includes(p.position)) || roster[0];
+  // With nothing chosen yet, open on the busiest skill player on the slate instead of
+  // whoever happens to be first in the list.
+  const rosterKey=roster.length+':'+(roster[0]?.id||'')+':'+season;
+  const defaultPlayer=useMemo(()=>{
+    let best=null,most=-1;
+    for(const p of roster){
+      if(!['WR','RB','TE'].includes(p.position))continue;
+      const touches=getPlayerGames(p,season).reduce((sum,g)=>sum+(Number(g.usage?.opportunities)||0),0);
+      if(touches>most){most=touches;best=p;}
+    }
+    return best||roster.find(p=>p.position==='QB')||roster[0];
+  },[rosterKey]);
+  const player = roster.find(p => p.id === selectedId) || defaultPlayer;
   const statOptions=useMemo(()=>{
     const priced=player&&pricedTeams.get(normalizeTeam(player.team))?.get(playerKey(player.name));
     return priced?[...priced].filter(key=>markets[key]):availableStats(markets,getPlayerGames(player,season));
