@@ -39,11 +39,12 @@ jobs:
       - name: Save pregame forecasts
         run: |
           node scripts/record_nfl.mjs
+          node scripts/calibrate_props.mjs
           node scripts/track_picks.mjs nfl
 
       - name: Commit and publish changed data
         run: |
-          git add public/data/stats.json public/data/model-record.json public/data/nfl-picks.json
+          git add public/data/stats.json public/data/model-record.json public/data/nfl-picks.json public/data/prop-lines-archive.json src/lib/propWeights.js
           if git diff --cached --quiet; then
             echo "No new player stats — nothing to commit."
             exit 0
