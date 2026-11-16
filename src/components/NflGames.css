@@ -216,3 +216,8 @@
 .slate-fixture b.has-edge {color:#8ee6b0}
 .slate-fixture em.value-tag {color:#8ee6b0; font-weight:600}
 .slate-fixture .slate-score {grid-column:1/-1; grid-row:2; font-size:.8rem; font-weight:600; color:#e6d9f0}
+.slate-live {grid-column:1/-1; font-size:.84rem; font-weight:800; color:#7dffb5; font-variant-numeric:tabular-nums}
+.slate-live i {font-style:normal; display:inline-flex; align-items:center; gap:.35rem; margin-right:.35rem; padding:.12rem .5rem; border:1.5px solid #3ddc84; border-radius:99px; font-size:.68rem; letter-spacing:.03em; text-transform:uppercase}
+.slate-live.is-final {color:#f1eaf6}
+.slate-live.is-final i {border-color:#6f6779; color:#cfc6d8}
+.slate-fixture .slate-score {display:flex; flex-wrap:wrap; align-items:center; gap:.3rem .9rem}

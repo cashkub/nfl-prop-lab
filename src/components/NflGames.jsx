@@ -1,3 +1,5 @@
+import {useLiveScores} from './useLiveScores.js';
+import {scoreKey} from '../lib/liveScores.js';
 import {gamePicks} from '../lib/gamePicks.js';
 import TeamLogo from './TeamLogo.jsx';
 import {teamNames} from '../lib/schedule.js';
@@ -37,6 +39,7 @@ const gameDay=g=>dayLabel.format(new Date(g.kickoff));
 const gameTime=g=>g.timeKnown===false?'Time TBD':timeLabel.format(new Date(g.kickoff));
 
 export default function NflGames({schedule,books,players,validation,season,now,onOpen,updated,loading,error}){
+  const liveScores=useLiveScores();
   const [requestedWeek,setWeek]=useState(()=>savedAnalysis().week||'');
   const [selectedId,setSelected]=useState('');
   const [tab,setTab]=useState(()=>savedAnalysis().tab||'game');
@@ -141,9 +144,10 @@ export default function NflGames({schedule,books,players,validation,season,now,o
     return output.sort((a,b)=>a.team.localeCompare(b.team)||a.p.name.localeCompare(b.p.name)||a.label.localeCompare(b.label));
   },[players,selected,bookGame,market,tab]);
   const breakdown=selected?projection(selected,selected.awayRating,selected.homeRating):null;
+  const selectedLive=selected?liveScores.get(scoreKey(selected.away,selected.home)):null;
   const selectedAnalysis=selected&&<section ref={analysisRef} tabIndex={-1} className="nfl-analysis" aria-labelledby="nfl-analysis-title">
     <section className="match-score" aria-labelledby="nfl-analysis-title">
-      <div className="match-score-caption"><h2 id="nfl-analysis-title">Projected final score</h2><span>{selected.timeKnown===false?selected.date+' · Time TBD':kickoff.format(new Date(selected.kickoff))}</span></div>
+      <div className="match-score-caption"><h2 id="nfl-analysis-title">Projected final score</h2>{selectedLive&&<span className={'slate-live'+(selectedLive.final?' is-final':'')}><i>{selectedLive.final?'Final':'Live · '+selectedLive.detail}</i> {selected.away} {selectedLive.away}, {selected.home} {selectedLive.home}</span>}<span>{selected.timeKnown===false?selected.date+' · Time TBD':kickoff.format(new Date(selected.kickoff))}</span></div>
       <div className="match-score-teams">{['away','home'].map(side=>{
         const team=selected[side],score=breakdown?.[side==='away'?'a':'h']?.score;
         const code=({WAS:'wsh',LA:'lar'})[team]||team.toLowerCase();
@@ -178,6 +182,7 @@ const pct=n=>`${(100*n).toFixed(1)}%`;
 
 
 function WeeklySlate({games,onOpen}){
+  const scores=useLiveScores();
   const days=new Map();
   for(const game of games){
     const day=gameDay(game);
@@ -189,11 +194,15 @@ function WeeklySlate({games,onOpen}){
     {fixtures.map(game=>{
       const model=projection(game,game.awayRating,game.homeRating);
       const {winner,hasWinnerForecast,spreadTeam,spreadLine,spreadEdge,totalSide,moneyline}=gamePicks(game,model);
+      const live=scores.get(scoreKey(game.away,game.home));
       const spreadPrice=spreadTeam===game.home?game.homeSpreadPrice:game.awaySpreadPrice;
       const totalPrice=totalSide==='OVER'?game.overPrice:game.underPrice;
       return <button className="slate-fixture" type="button" key={gameKey(game)} onClick={()=>onOpen(gameKey(game))}>
         <span className="slate-pair"><b><span style={{'--club':teamColor(game.away)}}><TeamLogo team={game.away}/>{game.away}</span> @ <span style={{'--club':teamColor(game.home)}}><TeamLogo team={game.home}/>{game.home}</span></b><small>{gameTime(game)}</small></span>
-        {model?.a&&model?.h&&<span className="slate-score">Model score: {game.away} {Math.round(model.a.score)}, {game.home} {Math.round(model.h.score)}</span>}
+        {(model?.a&&model?.h||live)&&<span className="slate-score">
+          {live&&<span className={'slate-live'+(live.final?' is-final':'')}><i>{live.final?'Final':'Live · '+live.detail}</i> {game.away} {live.away}, {game.home} {live.home}</span>}
+          {model?.a&&model?.h&&<span>Model score: {game.away} {Math.round(model.a.score)}, {game.home} {Math.round(model.h.score)}</span>}
+        </span>}
         <span><small>Winner pick</small><b>{winner?winner.team+(Number.isFinite(winner.price)?' '+priceText(winner.price):''):hasWinnerForecast?'Even':'Unavailable'}</b>
           {winner&&<em>{Math.round(100*winner.probability)}% model win{winner.breakEven!=null?` · needs ${Math.round(100*winner.breakEven)}%`:''}</em>}
           {moneyline.value&&<em className="value-tag">Value: {moneyline.value.team} {priceText(moneyline.value.price)}</em>}</span>
