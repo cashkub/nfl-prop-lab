@@ -87,3 +87,15 @@
 .lh-side b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .lh-tiles:has(.lh-tile:nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:560px){.lh-tiles:has(.lh-tile:nth-child(3):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Long team names (college) stay inside the card. */
+.lh-game{min-width:0;overflow:hidden}
+.lh-side{min-width:0}
+.lh-side .team-logo{flex:none}
+.lh-side b{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lh-side i,.lh-side u{flex:none;margin-left:0}
+.lh-game>em{min-width:0}
+.lh-game>em>:first-child{min-width:0}
+.lh-game>em{overflow-wrap:anywhere}
+.lh-who{min-width:0}.lh-who b,.lh-who small{overflow:hidden;text-overflow:ellipsis}
+.lh-who b{white-space:nowrap}
+@media(max-width:560px){.lh-games.lh-games-cbb{grid-template-columns:minmax(0,1fr)}}

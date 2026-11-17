@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from cbb_bracket import project
 from cbb_model import Teams,Players,MARKETS,FIELDS,combine,outcomes
 from cbb_feeds import injuries,instant,team_directory,d1_conferences
+from cbb_looks import prop_chances,pick_looks
 
 ROOT=Path(__file__).resolve().parents[1]/'public/data/cbb-v2'
 CACHE=Path(os.environ.get('CBB_CACHE','/tmp/cbb-cache'))
@@ -136,11 +137,14 @@ def main():
     frozen=[r for r in archive if instant(r['time'])<=now]
     for r in frozen:
         result=finals.get(r['game'])
-        if not result or r.get('result'):continue
+        if not result:continue
+        if not r.get('final'):r['final']=[result[1],result[0]]
+        if r.get('result'):continue
         if r['market']=='Player prop':
             if (r['game'],r['pid']) not in actual:continue
             stats=actual[r['game'],r['pid']]
             if stats is None:r['result']='Void';continue
+            r['actual']=stats[r['metric']]
             diff=stats[r['metric']]-r['line'];diff*=1 if r['side']=='over' else -1
         elif r['market']=='Total':diff=(sum(result)-r['line'])*(1 if r['side']=='over' else -1)
         else:diff=(result[0]-result[1])*(1 if r['side']=='home' else -1)+r['line']
@@ -169,7 +173,7 @@ def main():
             side='home' if g['homeWin']>=.5 else 'away'
             archive.append(dict(game=id,time=g['time'],market='Moneyline',side=side,label=names[g[side]]['name'],
                                 matchup=names[a]['name']+' @ '+names[h]['name'],away=a,home=h,
-                                prob=round(max(g['homeWin'],1-g['homeWin']),3),price=None,line=0,
+                                prob=round(max(g['homeWin'],1-g['homeWin']),3),price=None,line=0,score=[round(aws,1),round(hs,1)],
                                 saved=datetime.now(timezone.utc).isoformat(),result=None))
             saved_winners.add(id)
         g['picks']=[]
@@ -180,11 +184,20 @@ def main():
         g['priced']=False
         g['injuries']=[r for pid,r in reports.items() if players.last_team.get(pid) in (h,a)]
         for p in roster:
+            p['props']=prop_chances(p)
             p.pop('draws')
             opponent=a if p['team']==h else h
             p['defenseRank']={k:ranks[opponent,p['role'],k] for k in FIELDS if (opponent,p['role'],k) in ranks}
         g['roster']=roster;g['lines']=[]
         day_games[str(instant(g['time']).astimezone(ET).date())].append(g)
+    # Top Looks: saved once per day, before the day's first game, and never changed after.
+    today_games=[g for g in day_games.get(str(day),[]) if instant(g['time'])>datetime.now(timezone.utc)]
+    if today_games and not any(r['market']=='Player prop' and instant(r['time']).astimezone(ET).date()==day for r in archive):
+        for look in pick_looks(today_games):
+            g=next(x for x in today_games if x['id']==look['game'])
+            archive.append(dict(**look,market='Player prop',top=True,label=look['name'],price=None,
+                                matchup=names[g['away']]['name']+' @ '+names[g['home']]['name'],away=g['away'],home=g['home'],
+                                saved=datetime.now(timezone.utc).isoformat(),result=None))
     write(ROOT/'record.json',archive)
     for d in days:write(ROOT/(d+'.json'),day_games[d])
     for p in (ROOT.glob('????-??-??.json')):

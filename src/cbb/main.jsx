@@ -8,8 +8,11 @@ import LineControl,{ControlLabel} from '../components/LineControl.jsx';
 import ChartSelect from '../components/ChartSelect.jsx';
 import {rateStyle} from '../components/HitRate.jsx';
 import FilterMenu from '../components/FilterMenu.jsx';
-import RecordHeader from '../components/RecordHeader.jsx';
-import {BarChart3,Target,Shield,ChartNoAxesCombined} from 'lucide-react';
+import CbbRecord from './CbbRecord.jsx';
+import CbbTopLooks from './CbbTopLooks.jsx';
+import {useLiveCbb} from './live.js';
+import {pickLooks,withTeams,school,pickText,shortMarkets,tone as resultTone} from './shared.js';
+import {Target,Shield,ChartNoAxesCombined} from 'lucide-react';
 import '../components/ModelRecordPicks.css';
 import '../components/NflGames.css';
 import '../components/NflPropList.css';
@@ -63,53 +66,63 @@ function Shell(){
   },[]);
   return <main className={'chart-lab cb '+({home:'model-record-preview',props:'prop-list',top:'top-looks',games:'model-record-preview',record:'model-record-preview'}[page]||'')}><NflToolHeader league="CBB" active={page}/>{meta.value&&page==='bracket'?<Bracket meta={meta.value} useFile={useFile}/>:meta.value&&page==='home'?<Home meta={meta.value}/>:meta.value?<League page={page} meta={meta.value}/>:<p role="status">{meta.error?'CBB snapshot unavailable.':'Loading college basketball…'}</p>}</main>;
 }
-// Short school name for tight spaces: "Duke Blue Devils" -> "Duke".
-const MASCOT_FIRST=/^(Golden|Red|Blue|Fighting|Crimson|Yellow|Great|Black|Scarlet|Mean|Demon|Horned|Nittany|Tar|Purple|Runnin'|Ragin'|Rainbow|Green|Big|Thundering|Delta|Wolf|Sun|Blue)$/;
-const school=(name='')=>{
-  const words=name.split(' ');
-  if(words.length<2)return name;
-  words.pop();
-  if(words.length>1&&MASCOT_FIRST.test(words.at(-1)))words.pop();
-  return words.join(' ');
-};
 function Home({meta}){
   const today=etDay(Date.now());
   const day=(meta.firstDay>=today?meta.firstDay:meta.days.find(d=>d>=today))||meta.days.at(-1);
   const slate=useFile(day+'.json'),record=useFile('record.json'),directory=useFile('team-directory.json').value;
+  const ranks=directory?.ranks||{};
+  const teams=Object.fromEntries(Object.entries(meta.teams).map(([id,t])=>[id,{...t,rank:ranks[id]}]));
+  const saved=record.value?withTeams(record.value,teams):[];
+  const published=saved.filter(r=>r.market==='Player prop'&&r.top&&etDay(r.time)===day).sort((a,b)=>(a.rank??99)-(b.rank??99));
+  const looks=(published.length?published:pickLooks(slate.value||[])).slice(0,5);
+  const live=useLiveCbb(day<=today?[day]:[],looks.filter(r=>!r.result).map(r=>r.game));
   if(!slate.value||!record.value)return <p role="status">{slate.error||record.error?'CBB home data is unavailable right now.':'Loading college basketball…'}</p>;
-  const ranks=directory?.ranks||{},teams=meta.teams;
   const color=id=>'#'+(teams[id]?.color||'b69bd8');
   const label=id=>(ranks[id]?'#'+ranks[id]+' ':'')+school(teams[id]?.name||id);
   const games=slate.value;
-  const tally=market=>{
-    const rows=record.value.filter(r=>r.market===market);
-    return {label:market==='Total'?'Over/under':market,href:'#cbb-record',wins:rows.filter(r=>r.result==='Win').length,losses:rows.filter(r=>r.result==='Loss').length,pending:rows.filter(r=>!r.result).length};
+  const graded=saved.map(live.row);
+  const tally=(market,name)=>{
+    const rows=graded.filter(r=>r.market===market);
+    return {label:name,href:'#cbb-record',wins:rows.filter(r=>r.result==='Win').length,losses:rows.filter(r=>r.result==='Loss').length,pending:rows.filter(r=>!r.result).length};
   };
-  const scorers=games.flatMap(g=>g.roster.map(p=>({p,g}))).sort((a,b)=>b.p.estimate.points-a.p.estimate.points).slice(0,5)
-    .map(({p,g},i)=>({id:g.id+p.id,rank:i+1,name:p.name,playerId:p.id,photo:'https://a.espncdn.com/i/headshots/mens-college-basketball/players/full/'+p.id+'.png',color:color(p.team),
-      pick:school(teams[p.team]?.name)+' '+(p.team===g.home?'vs':'at')+' '+school(teams[p.team===g.home?g.away:g.home]?.name),status:'',chance:p.estimate.points.toFixed(1),support:'projected points'}));
+  const state=r=>r.result?(resultTone(r.result)):r.live?'live':Date.parse(r.time)<=Date.now()?'started':'pending';
+  const lookRows=looks.map(live.row).map((r,i)=>{
+    const value=r.actual??r.liveActual;
+    return {id:r.game+r.pid,rank:r.rank||i+1,name:r.name,playerId:r.pid,photo:'https://a.espncdn.com/i/headshots/mens-college-basketball/players/full/'+r.pid+'.png',color:color(r.team),
+      pick:pickText(r,teams),status:r.result||(r.live?'Live':Date.parse(r.time)<=Date.now()?'In progress':'Pending'),tone:state(r),
+      final:value!=null?`${r.result?'Final':'Now'}: ${value} ${shortMarkets[r.metric]||''}`:'',
+      chance:pct(r.prob),chanceStyle:rateStyle(r.prob),support:'model chance'};
+  });
   const favorites=[...games].sort((a,b)=>Math.max(b.homeWin,1-b.homeWin)-Math.max(a.homeWin,1-a.homeWin)).slice(0,5).map((g,i)=>{
-    const pick=g.homeWin>=.5?g.home:g.away,other=pick===g.home?g.away:g.home;
-    return {id:g.id,rank:i+1,name:label(pick),logo:pick,sport:'cbb',color:color(pick),pick:(pick===g.home?'vs ':'at ')+label(other)+' · '+timeFmt.format(new Date(g.time)),status:'',
+    const pick=g.homeWin>=.5?g.home:g.away,other=pick===g.home?g.away:g.home,score=live.scores.get(g.id);
+    const won=score?.final?(score.home>score.away?g.home:g.away)===pick:null;
+    return {id:g.id,rank:i+1,name:label(pick),logo:pick,sport:'cbb',color:color(pick),pick:(pick===g.home?'vs ':'at ')+label(other)+' · '+timeFmt.format(new Date(g.time)),
+      status:won==null?(score?'Live':''):won?'Win':'Loss',tone:won==null?(score?'live':''):won?'hit':'miss',
       chance:pct(Math.max(g.homeWin,1-g.homeWin)),chanceStyle:rateStyle(Math.max(g.homeWin,1-g.homeWin)),support:'win chance'};
   });
   const featured=[...games].sort((a,b)=>Number(Boolean(ranks[b.home]||ranks[b.away]))-Number(Boolean(ranks[a.home]||ranks[a.away]))||a.time.localeCompare(b.time)).slice(0,12).map(g=>{
-    const pick=g.homeWin>=.5?g.home:g.away;
-    return {id:g.id,color:color(pick),away:g.away,home:g.home,names:{[g.away]:label(g.away),[g.home]:label(g.home)},when:timeFmt.format(new Date(g.time)),scoreLabel:'Model',
-      awayScore:Math.round(g.awayScore),homeScore:Math.round(g.homeScore),pickSide:pick,pickText:'Pick '+school(teams[pick]?.name)+' · '+pct(Math.max(g.homeWin,1-g.homeWin))};
+    const pick=g.homeWin>=.5?g.home:g.away,score=live.scores.get(g.id);
+    const won=score?.final?(score.home>score.away?g.home:g.away)===pick:null,result=won==null?'':won?'Win':'Loss';
+    return {id:g.id,color:color(pick),away:g.away,home:g.home,names:{[g.away]:label(g.away),[g.home]:label(g.home)},
+      when:score?score.detail:timeFmt.format(new Date(g.time)),isLive:Boolean(score&&!score.final),scoreLabel:'Model',
+      awayScore:Math.round(g.awayScore),homeScore:Math.round(g.homeScore),
+      awayActual:score?score.away:null,homeActual:score?score.home:null,actualLabel:score?(score.final?'Final':'Live'):'',
+      pickSide:pick,pickText:'Pick '+school(teams[pick]?.name)+' · '+pct(Math.max(g.homeWin,1-g.homeWin)),result,tone:resultTone(result)};
   });
   return <LeagueHome hero={{league:'CBB',photo:'/preview/assets/cbb-scene.svg',accent:'#f39bff',date:new Intl.DateTimeFormat('en-US',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric'}).format(new Date(day+'T12:00Z')),
-      lines:[games.length+(games.length===1?' game':' games'),'Projections from the pregame model']}}
-    record={['Moneyline','Spread','Total'].map(tally)}
-    sections={[{title:'Top projected scorers',href:'#cbb-props',linkLabel:'All props',rows:scorers},{title:'Biggest favorites',href:'#cbb-games',linkLabel:'All games',rows:favorites}]}
+      lines:[games.length+(games.length===1?' game':' games'),published.length?published.length+' published picks':'']}}
+    record={[tally('Player prop','Player props'),tally('Moneyline','Moneyline'),tally('Spread','Spread'),tally('Total','Over/under')].filter((t,i)=>i<2||t.wins+t.losses+t.pending>0)}
+    sections={[{title:'Top looks',href:'#cbb-top',linkLabel:'See all',rows:lookRows},{title:'Biggest favorites',href:'#cbb-games',linkLabel:'All games',rows:favorites}]}
     games={{title:'Games',href:'#cbb-games',sport:'cbb',linkLabel:'All '+games.length+' games',rows:featured}}
-    note="Sportsbook lines are paused for CBB."/>;
+    note="Picks lock at tip-off."/>;
 }
 function League({page,meta}){
   const today=etDay(Date.now());
   const [chosenDay,setDay]=useState('');
-  const day=meta.days.includes(chosenDay)?chosenDay:(meta.firstDay>=today?meta.firstDay:meta.days.find(d=>d>=today))||meta.days.at(-1);
-  const slate=useFile(day+'.json'),record=useFile(['top','record'].includes(page)?'record.json':null);
+  const defaultDay=(meta.firstDay>=today?meta.firstDay:meta.days.find(d=>d>=today))||meta.days.at(-1);
+  const day=meta.days.includes(chosenDay)||(page==='top'&&chosenDay)?chosenDay:defaultDay;
+  const slate=useFile(meta.days.includes(day)?day+'.json':null),record=useFile(['top','record'].includes(page)?'record.json':null);
+  const live=useLiveCbb(page==='games'&&day<=today?[day]:[]);
   const [selected,pickGame]=useState('');
   const [target,setTarget]=useState(null);
   const directory=useFile('team-directory.json').value;
@@ -131,35 +144,49 @@ function League({page,meta}){
       </>}
       {page!=='top'&&<Select label="Matchup · Eastern time" value={game?.id||''} onChange={id=>{pickGame(id);setTarget(null);}}><option value="">All games</option>{games.map(g=><option key={g.id} value={g.id}>{timeFmt.format(new Date(g.time))} · {ranks[g.away]?'#'+ranks[g.away]+' ':''}{teams[g.away].name} @ {ranks[g.home]?'#'+ranks[g.home]+' ':''}{teams[g.home].name}</option>)}</Select>}</div>;
   return <>
-    {page!=='record'&&(page!=='charts'||!filteredPlayers.some(g=>g.roster.length))&&slateFilters}
-    {page==='record'||page==='top'?record.value?<Ledger teams={teams} rows={record.value} top={page==='top'} day={day} evaluation={meta.evaluation}/>:<p>{record.error?'Record unavailable.':'Loading picks…'}</p>:
+    {!['record','top'].includes(page)&&(page!=='charts'||!filteredPlayers.some(g=>g.roster.length))&&slateFilters}
+    {page==='record'||page==='top'?record.value?(page==='record'?<CbbRecord rows={record.value} teams={teams}/>
+      :<CbbTopLooks rows={withTeams(record.value,teams)} games={slate.value} teams={teams} days={meta.days} day={day} onDay={d=>{setDay(d);pickGame('');setTarget(null);}}
+        onChart={r=>{const g=(slate.value||[]).find(x=>x.id===r.game);if(g)chart(g,r.pid,r.metric);}}/>):<p>{record.error?'Record unavailable.':'Loading picks…'}</p>:
       !slate.value?<p>{slate.error?'Slate unavailable.':'Loading slate…'}</p>:!games.length?<p>No matching games for {labelDay(day)}.</p>:
-      page==='games'?game?<Detail game={{...game,roster:filteredPlayers[0].roster,priced:false,lines:[]}} meta={{...meta,teams}} back={()=>pickGame('')} chart={chart}/>:<div className="panel nfl-games"><div className="weekly-slate"><section><h3>{labelDay(day)}</h3>{games.map(g=><GameCard key={g.id} game={g} teams={teams} open={()=>pickGame(g.id)}/>)}</section></div></div>:
+      page==='games'?game?<Detail game={{...game,roster:filteredPlayers[0].roster,priced:false,lines:[]}} meta={{...meta,teams}} live={live.scores.get(game.id)} back={()=>pickGame('')} chart={chart}/>:<div className="panel nfl-games"><div className="weekly-slate"><section><h3>{labelDay(day)}</h3>{games.map(g=><GameCard key={g.id} game={g} teams={teams} live={live.scores.get(g.id)} open={()=>pickGame(g.id)}/>)}</section></div></div>:
       page==='props'?<PropList games={filteredPlayers} teams={teams} chart={chart}/>:<Charts slateFilters={slateFilters} key={target?.id+':'+(target?.metric||'')+day} games={filteredPlayers} teams={teams} target={target}/>}
     <p className="cb-foot">Updated {dateFmt.format(new Date(meta.updated))}, {timeFmt.format(new Date(meta.updated))}</p>
   </>;
 }
-function GameCard({game:g,teams,open}){
+function GameCard({game:g,teams,live,open}){
   const win=g.homeWin>=.5?g.home:g.away;
   const leader=g.homeScore>=g.awayScore?g.home:g.away;
   const margin=Math.abs(g.homeScore-g.awayScore);
-  return <button className="slate-fixture" onClick={open}>
-    <span className="slate-pair"><b><Team id={g.away} teams={teams}/> @ <Team id={g.home} teams={teams}/></b><small>{timeFmt.format(new Date(g.time))} · {g.neutral?'Neutral court':'Home court'}</small></span>
-    <span><small>Projected winner</small><b>{teams[win].name}</b><em>{pct(Math.max(g.homeWin,1-g.homeWin))} model win</em></span>
-    <span><small>Projected margin</small><b>{margin?teams[leader].name+' by '+margin.toFixed(1):'Even'}</b></span>
-    <span><small>Projected total</small><b>{(g.homeScore+g.awayScore).toFixed(1)}</b><em>{g.awayScore} – {g.homeScore}</em></span>
+  const short=id=>(teams[id]?.rank?'#'+teams[id].rank+' ':'')+school(teams[id]?.name||id);
+  const won=live?.final?(live.home>live.away?g.home:g.away)===win:null;
+  return <button className="slate-fixture cb-fixture" onClick={open}>
+    <span className="slate-pair"><b><span style={{'--club':'#'+(teams[g.away]?.color||'a775cf')}}><TeamLogo team={g.away} sport="cbb"/>{short(g.away)}</span> @ <span style={{'--club':'#'+(teams[g.home]?.color||'a775cf')}}><TeamLogo team={g.home} sport="cbb"/>{short(g.home)}</span></b><small>{timeFmt.format(new Date(g.time))} · {g.neutral?'Neutral court':'Home court'}</small></span>
+    <span className="slate-score">
+      {live&&<span className={'slate-live'+(live.final?' is-final':'')}><i>{live.final?'Final':'Live · '+live.detail}</i> {short(g.away)} {live.away}, {short(g.home)} {live.home}{won!=null&&<em className={'pick-row-result '+(won?'hit':'miss')}>{won?'Win':'Loss'}</em>}</span>}
+      <span>Model score: {short(g.away)} {Math.round(g.awayScore)}, {short(g.home)} {Math.round(g.homeScore)}</span>
+    </span>
+    <span><small>Winner pick</small><b>{short(win)}</b><em>{pct(Math.max(g.homeWin,1-g.homeWin))} win chance</em></span>
+    <span><small>Margin</small><b>{margin?short(leader)+' by '+margin.toFixed(1):'Even'}</b></span>
+    <span><small>Total</small><b>{(g.homeScore+g.awayScore).toFixed(1)}</b></span>
     <span className="slate-chevron" aria-hidden="true">›</span>
   </button>;
 }
-function Detail({game:g,meta,back,chart}){
+function Detail({game:g,meta,live,back,chart}){
   const {teams}=meta;
   const [tab,set]=useState('Game picks');
   return <section className="panel nfl-games"><button className="slate-back" onClick={back}>← All games</button>
     <section className="match-score"><div className="match-score-caption"><h2>Projected final score</h2><span>{g.arena} · {g.neutral?'Neutral court':'Home court'} · {timeFmt.format(new Date(g.time))}</span></div>
-      <div className="match-score-teams">{['away','home'].map(side=><div key={side} style={{'--club':'#'+teams[g[side]].color}}><TeamLogo team={g[side]} sport="cbb"/><span><small>{side}</small><b>{teams[g[side]].name}</b></span><strong>{g[side+'Score']}</strong></div>)}</div></section>
+      <div className="match-score-teams">{['away','home'].map(side=><div key={side} style={{'--club':'#'+teams[g[side]].color}}><TeamLogo team={g[side]} sport="cbb"/><span><small>{side}</small><b>{teams[g[side]].name}</b></span><strong>{g[side+'Score']}</strong>{live&&<em className={'cb-live-score'+(live.final?' is-final':'')}>{live[side]}</em>}</div>)}</div>{live&&<p className="cb-live-note">{live.final?'Final':'Live · '+live.detail} · model score in large print</p>}</section>
     <nav className="nfl-analysis-tabs" aria-label="Game analysis" role="tablist">{[['Game picks',Target],['Player props',ChartNoAxesCombined],['Matchup breakdown',Shield]].map(([t,Icon])=><button type="button" role="tab" aria-selected={t===tab} key={t} onClick={()=>set(t)}><Icon size={17}/>{t}</button>)}</nav>
     <div className="nfl-tab-panel" role="tabpanel">
-  {tab==='Player props'?<PropList games={[g]} teams={teams} chart={chart}/>:tab==='Game picks'?<section className="nfl-view-panel"><div className="nfl-predictions-heading"><h3>Game projections</h3></div><div className="nfl-pick-grid">{[['Projected total',(g.homeScore+g.awayScore).toFixed(1)],['Home margin',(g.homeScore-g.awayScore).toFixed(1)],['Home win probability',pct(g.homeWin)]].map(([label,v])=><article key={label} className="nfl-pick-tile"><small>{label}</small><b>{v}</b></article>)}</div>{g.picks.map(p=><p key={p.market}><b>{p.market} · {p.label} {p.market==='Moneyline'?'':p.line}</b> · DK {money(p.price)} · {pct(p.prob)} model probability{p.quoted?' · Quote '+dateFmt.format(new Date(p.quoted))+', '+timeFmt.format(new Date(p.quoted)):''}{p.ev<=0?' · No positive estimated value':''}</p>)}{!g.picks.length&&<p>CBB sportsbook updates are paused.</p>}</section>:
+  {tab==='Player props'?<PropList games={[g]} teams={teams} chart={chart}/>:tab==='Game picks'?<section className="nfl-view-panel"><div className="nfl-predictions-heading"><div><h3>Model picks</h3></div></div><div className="nfl-pick-grid">{(()=>{
+    const win=g.homeWin>=.5?g.home:g.away,leader=g.homeScore>=g.awayScore?g.home:g.away,margin=Math.abs(g.homeScore-g.awayScore);
+    const won=live?.final?(live.home>live.away?g.home:g.away)===win:null;
+    return [['WINNER PICK',teams[win].name,pct(Math.max(g.homeWin,1-g.homeWin))+' win chance'+(won==null?'':won?' · Win':' · Loss')],
+      ['PROJECTED MARGIN',margin?school(teams[leader].name)+' by '+margin.toFixed(1):'Even',g.neutral?'Neutral court':'Home court worth '+g.court+' points'],
+      ['PROJECTED TOTAL',(g.homeScore+g.awayScore).toFixed(1),g.pace+' possessions'+(live?.final?' · final total '+(live.home+live.away):'')]]
+      .map(([label,value,detail])=><article key={label} className="nfl-pick-tile"><small>{label}</small><b>{value}</b><span>{detail}</span></article>);})()}</div></section>:
   <section className="cb-panel lab-block"><h2>Matchup breakdown</h2><p>{g.pace} projected possessions · {g.court} points home-court adjustment</p><div className="cb-scroll"><table><thead><tr><th>Profile</th>{[g.away,g.home].map(t=><th key={t}><Team id={t} teams={teams}/></th>)}</tr></thead><tbody>{[['AdjO','adjO'],['AdjD','adjD'],['AdjT','adjT']].map(([label,k])=><tr key={k}><th>{label}</th>{[g.away,g.home].map(t=><td key={t}>{g.ratings[t][k]}</td>)}</tr>)}{['Effective FG','Turnover rate','Offensive rebound rate','FT attempts / FG attempts'].flatMap((label,i)=>['offense','defense'].map(k=><tr key={k+i}><th>{label} · {k==='offense'?'offense':'allowed'}</th>{[g.away,g.home].map(t=><td key={t}>{g.ratings[t][k][i]==null?'—':g.ratings[t][k][i]+'%'}</td>)}</tr>))}<tr><th>Days since last game</th>{[g.away,g.home].map(t=><td key={t}>{g.rest[t]??'—'}</td>)}</tr></tbody></table></div><h3>Availability</h3>{[g.away,g.home].map(t=>g.missingScoring?.[t]>0&&<p key={t}>{teams[t].name} · projected scoring reduced by {g.missingScoring[t]} points for reported absences.</p>)}{g.injuries.length?g.injuries.map((r,i)=><p key={i}>{r.name} · {r.status}</p>):<p>{meta.injuryFeed?'No players listed in the available report.':'Injury feed unavailable.'}</p>}</section>}</div></section>;
 }
 function rowsFor(games,metric){
@@ -222,37 +249,6 @@ function Charts({games,teams,target,slateFilters}){
     <section className="lab-block"><h2>Production &amp; workload</h2><dl>{[['Projected minutes',p.minutes],['Recent minutes range',p.minuteRange?.join('–')],['Recent starts',p.starts],['Fouls per 40 minutes',p.foulRate]].map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></section>
     <section className="lab-block player-log"><h2>Game log</h2><div className="history-scroll log-table"><table><thead><tr>{['Date','Opponent','Minutes',markets[metric],'Result'].map(k=><th key={k}>{k}</th>)}</tr></thead><tbody>{rows.slice().reverse().map(r=><tr key={r.id}><td>{r.log.date}</td><td><TeamLogo sport="cbb" team={r.opponent}/>{r.opponentLabel}</td><td>{r.log.min}</td><td>{r.value}</td><td><span className="log-outcome" data-result={r.outcome}>{r.outcome}</span></td></tr>)}</tbody></table></div></section>
   </div>;
-}
-function RecordPick({row:r,teams,byName}){
-  const [awayName,homeName]=r.matchup.split(' @ ');
-  const away=r.away||byName.get(awayName),home=r.home||byName.get(homeName);
-  const player=r.market==='Player prop';
-  const picked=player?r.team:r.side==='away'?away:r.side==='home'?home:null;
-  const color=id=>teams[id]?.color?'#'+teams[id].color:'#9f79b7';
-  const description=player?r.side+' '+r.line+' '+markets[r.metric]:r.market==='Moneyline'?(r.price==null?'to win':'ML'):r.line;
-  return <article className="cb-pick cb-record-pick" style={{'--away-color':color(away),'--home-color':color(home),'--pick-color':color(picked)}}>
-    <div className="cb-record-match">{away&&home?<><span><TeamLogo sport="cbb" team={away}/>{awayName}</span><small>@</small><span><TeamLogo sport="cbb" team={home}/>{homeName}</span></>:r.matchup}</div>
-    <small>{dateFmt.format(new Date(r.time))}</small>
-    <h3 className="cb-record-selection">{player?<Headshot id={r.pid} team={picked}/>:picked&&<TeamLogo sport="cbb" team={picked}/>}<span>{r.label} {description}</span></h3>
-    <p>{r.price==null?'Model winner':'DK '+money(r.price)} · {pct(r.prob)} model · {r.result||'Pending'}</p>
-    <small>{Date.parse(r.time)<=Date.now()?'Locked':'Pregame'} · Saved {dateFmt.format(new Date(r.saved))}, {timeFmt.format(new Date(r.saved))}</small>
-  </article>;
-}
-function Ledger({teams,rows,top,day,evaluation}){
-  const [market,setMarket]=useState('All'),[chosenDate,setDate]=useState(''),[limit,setLimit]=useState(40);
-  const today=etDay(Date.now());
-  const dailyRows=rows.filter(r=>etDay(r.time)>='2026-11-12'&&etDay(r.time)<=today);
-  const dates=[...new Set(dailyRows.map(r=>etDay(r.time)))].sort().reverse();
-  const date=chosenDate||dates[0]||'All';
-  const show=(top?rows:dailyRows).filter(r=>(top?etDay(r.time)===day&&r.market==='Player prop'&&r.top:date==='All'||etDay(r.time)===date)&&(top||market==='All'||market===r.market))
-    .sort((a,b)=>top?b.ev-a.ev:b.time.localeCompare(a.time));
-  const byName=new Map(Object.entries(teams).map(([id,t])=>[t.name,id]));
-  const counts=s=>show.filter(r=>r.result===s).length;
-  return <section className={top?"top-pick-list":"panel props-board model-record-shell"}>{top?<><div className="top-looks-heading"><h2>Ranked player props</h2><span className="slate-count">{show.length} qualified</span></div><p>Sportsbook lines are paused for CBB.</p></>:<><div className="board-sort model-record-tabs">{['All','Player prop','Moneyline','Total','Spread'].map(m=><button className="outline-button" key={m} aria-pressed={m===market} onClick={()=>setMarket(m)}>{m}</button>)}</div><RecordHeader title={market==='All'?'College basketball':market} icon={BarChart3}>Tracking since Nov 12, 2026.</RecordHeader><div className="cb-filter-grid cb-single"><Select label="Game date" value={date} onChange={d=>{setDate(d);setLimit(40);}}><option value="All">All game days</option>{dates.map(d=><option key={d} value={d}>{labelDay(d)}</option>)}</Select></div><p>{counts('Win')} wins · {counts('Loss')} losses · {counts('Push')} pushes · {counts('Void')} void · {show.filter(r=>!r.result).length} pending</p></>}
-    {!show.length&&<p>{top?'No saved Top Looks for this date.':'No saved picks in this selection.'}</p>}
-    {show.slice(0,limit).map(r=><RecordPick key={[r.game,r.market,r.pid,r.metric,r.side,r.line].join('-')} row={r} teams={teams} byName={byName}/>)}
-    {show.length>limit&&<button onClick={()=>setLimit(limit+40)}>Show more</button>}
-    {!top&&<details><summary>Historical game-model check</summary><p>{evaluation.games} games in the season ending {evaluation.season}, predicted chronologically. Winner accuracy {pct(evaluation.winner)} · margin error {evaluation.marginMAE} points · total error {evaluation.totalMAE} points.</p>{evaluation.playerCount>0&&<p>Current-season player check · {evaluation.playerCount} projected players who appeared in sampled games. Average absolute errors · minutes {evaluation.playerErrors.minutes}, points {evaluation.playerErrors.points}, rebounds {evaluation.playerErrors.rebounds}, assists {evaluation.playerErrors.assists}.</p>}</details>}</section>;
 }
 document.documentElement.dataset.theme='dark';
 createRoot(document.getElementById('root')).render(<Shell/>);

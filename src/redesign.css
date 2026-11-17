@@ -163,3 +163,8 @@ html .chart-lab .nfl-tool-header nav a:focus-visible{outline:2px solid #fff;outl
   html .chart-lab .nfl-tool-header nav[style*="7"] .nav-ico{width:34px}
 }
 @media(prefers-reduced-motion:reduce){html .chart-lab .nfl-tool-header nav :is(a,button){transition:none}}
+/* Long names (college) never push the chance column off screen. */
+.top-pick-list>*{min-width:0}
+.pick-row-who small{overflow:hidden;text-overflow:ellipsis}
+.pick-row-who .pick-row-game{min-width:0}
+.pick-row-who .pick-row-game span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

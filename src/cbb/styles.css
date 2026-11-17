@@ -111,3 +111,13 @@
 @container (max-width: 20rem) {
   .chart-lab.cb .nfl-tool-header nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* CBB parity with NFL: live scores and compact team names. */
+.cb .cb-fixture .slate-pair b span{display:inline-flex;align-items:center;gap:.3rem}
+.cb .cb-fixture .slate-pair .team-logo{width:1.2rem;height:1.2rem;object-fit:contain}
+.cb .cb-fixture .slate-live em{margin-left:.4rem;vertical-align:middle}
+.cb .match-score-teams strong{display:block}
+.cb .cb-live-score{display:block;font-style:normal;font-size:.9rem;font-weight:750;color:#8ee6b0}
+.cb .cb-live-score.is-final{color:#e6dcef}
+.cb .cb-live-note{margin:.4rem 0 0;font-size:.75rem;color:#a99db3}
+.cb .cb-top-filter{grid-template-columns:minmax(0,16rem) 1fr;align-items:end}
