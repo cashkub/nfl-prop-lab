@@ -20,6 +20,7 @@ import '../components/TopLooks.css';
 import TeamLogo from '../components/TeamLogo.jsx';
 import '../styles.css';
 import '../components/NflCharts.css';
+import '../redesign.css';
 import './styles.css';
 
 const markets={points:'Points',rebounds:'Rebounds',assists:'Assists',threes:'Made threes',turnovers:'Turnovers',steals:'Steals',blocks:'Blocks',PRA:'Points + rebounds + assists',PR:'Points + rebounds',PA:'Points + assists',RA:'Rebounds + assists'};
