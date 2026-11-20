@@ -14,11 +14,17 @@ export default function FilterMenu({children, value, onChange, disabled, classNa
   const [position,setPosition] = useState(null);
   const button = useRef(null), popup = useRef(null), menu = useRef(null), searchInput = useRef(null), search = useRef({text:'',time:0});
   const id = useId();
+  const keyNav = useRef(false);
+  // Phones get a bottom sheet: no keyboard until you tap search, and the list scrolls freely.
+  const [sheet,setSheet] = useState(false);
   const searchable=options.length>8;
   const visibleOptions=useMemo(()=>options.map((option,index)=>({...option,index})).filter(option=>!query||[option.group,option.label].filter(Boolean).join(' ').toLowerCase().includes(query.toLowerCase().trim())),[options,query]);
   const menuTitle=props['aria-label'] || button.current?.closest('label')?.childNodes[0]?.textContent?.trim() || 'Choose An Option';
 
-  function show() {setQuery('');setActive(Math.max(0,selected));setOpen(true);}
+  function show() {
+    setSheet(typeof window!=='undefined'&&(window.matchMedia?.('(pointer:coarse)').matches||window.innerWidth<=650));
+    keyNav.current=false;setQuery('');setActive(Math.max(0,selected));setOpen(true);
+  }
   function choose(index) {
     if (!visibleOptions[index]) return;
     onChange({target:{value:visibleOptions[index].value}});
@@ -29,6 +35,14 @@ export default function FilterMenu({children, value, onChange, disabled, classNa
   useLayoutEffect(()=>{
     if (!open) return;
     function place() {
+      if (sheet) {
+        // Sit on top of the on-screen keyboard when it is open.
+        const view = window.visualViewport;
+        const height = view ? view.height : window.innerHeight;
+        const lift = view ? Math.max(0, window.innerHeight - view.height - view.offsetTop) : 0;
+        setPosition({left:0,right:0,bottom:lift,width:'100%',maxHeight:Math.round(height*(lift?.92:.72))});
+        return;
+      }
       const box = button.current.getBoundingClientRect();
       const width = Math.min(Math.max(box.width,220),window.innerWidth-24);
       const below = window.innerHeight-box.bottom-16, above = box.top-16;
@@ -42,18 +56,33 @@ export default function FilterMenu({children, value, onChange, disabled, classNa
     function outside(e) {
       if(!button.current?.contains(e.target) && !popup.current?.contains(e.target))setOpen(false);
     }
+    // Scrolling the list itself must not move the menu.
+    function pageScroll(e) {if(!sheet&&!popup.current?.contains(e.target))place();}
+    const view = window.visualViewport;
     window.addEventListener('resize',place);
-    window.addEventListener('scroll',place,true);
+    window.addEventListener('scroll',pageScroll,true);
+    view?.addEventListener('resize',place);
     document.addEventListener('pointerdown',outside);
+    const overflow=document.body.style.overflow;
+    if(sheet)document.body.style.overflow='hidden';
     return ()=>{
       window.removeEventListener('resize',place);
-      window.removeEventListener('scroll',place,true);
+      window.removeEventListener('scroll',pageScroll,true);
+      view?.removeEventListener('resize',place);
       document.removeEventListener('pointerdown',outside);
+      document.body.style.overflow=overflow;
     };
-  },[open,options.length,searchable]);
-  useEffect(()=>{if(open&&searchable)searchInput.current?.focus({preventScroll:true});},[open,searchable]);
+  },[open,options.length,searchable,sheet]);
+  useEffect(()=>{if(open&&searchable&&!sheet)searchInput.current?.focus({preventScroll:true});},[open,searchable,sheet]);
+  // When the menu opens, show the current choice in the middle of the list.
+  useLayoutEffect(()=>{
+    if(!open||!position)return;
+    const list=menu.current,item=list?.querySelector('[aria-selected=true]');
+    if(item)list.scrollTop=item.offsetTop-(list.clientHeight-item.offsetHeight)/2;
+  },[open,Boolean(position)]);
   useEffect(()=>{
-    if(open && position) {
+    // Only follow the highlighted option when it moved by keyboard, never while a finger scrolls.
+    if(open && position && keyNav.current) {
       const list=menu.current, item=list?.children[active];
       if(!item)return;
       if(item.offsetTop<list.scrollTop)list.scrollTop=item.offsetTop;
@@ -70,6 +99,7 @@ export default function FilterMenu({children, value, onChange, disabled, classNa
       e.preventDefault();
       if(!open){show();return;}
       if(!visibleOptions.length)return;
+      keyNav.current=true;
       setActive(i=>e.key==='Home'?0:e.key==='End'?visibleOptions.length-1:Math.max(0,Math.min(visibleOptions.length-1,i+(e.key==='ArrowUp'?-1:1))));
       return;
     }
@@ -89,16 +119,19 @@ export default function FilterMenu({children, value, onChange, disabled, classNa
       onClick={()=>open?setOpen(false):show()} onKeyDown={keyDown}>
       <span>{options[selected]?.shortLabel || options[selected]?.label || options[0]?.label || '—'}</span><ChevronDown size={15} aria-hidden="true"/>
     </button>
-    {expanded && position && createPortal(<div ref={popup} className="filter-popup" style={position}>
-      <div className="filter-popup-heading"><b>{menuTitle}</b><small>{visibleOptions.length} of {options.length} options</small></div>
+    {expanded && position && createPortal(<>
+      {sheet&&<div className="filter-sheet-backdrop" aria-hidden="true"/>}
+      <div ref={popup} className={'filter-popup'+(sheet?' is-sheet':'')} style={position}>
+      {sheet&&<span className="filter-sheet-grip" aria-hidden="true"/>}
+      <div className="filter-popup-heading"><b>{menuTitle}</b>{sheet?<button type="button" className="filter-sheet-done" onClick={()=>setOpen(false)}>Done</button>:<small>{visibleOptions.length} of {options.length} options</small>}</div>
       {searchable&&<label className="filter-popup-search"><Search size={16} aria-hidden="true"/><input ref={searchInput} type="search" role="searchbox" aria-label={'Search '+menuTitle} placeholder={'Search '+menuTitle.toLowerCase()+'…'} value={query} onChange={event=>{setQuery(event.target.value);setActive(0)}} onKeyDown={keyDown}/></label>}
       <div ref={menu} className="filter-popup-options" role="listbox" id={id} aria-label={menuTitle}>
         {visibleOptions.length?visibleOptions.map((option,i)=><div role="option" aria-selected={selected===option.index} id={id+'-'+i} key={option.value}
-          className={'filter-option'+(active===i?' active':'')} onPointerMove={()=>setActive(i)} onMouseDown={e=>e.preventDefault()}
+          className={'filter-option'+(active===i?' active':'')} onPointerMove={e=>{if(e.pointerType==='mouse'){keyNav.current=false;setActive(i);}}} onMouseDown={e=>e.preventDefault()}
           onClick={e=>{e.preventDefault();e.stopPropagation();choose(i);}}>
           <span>{option.group&&option.group!==visibleOptions[i-1]?.group&&<small className="filter-option-day">{option.group}</small>}{option.label}</span>{selected===option.index && <Check size={16} aria-hidden="true"/>}
         </div>):<div className="filter-empty">No matching options.</div>}
       </div>
-    </div>,button.current.closest('.app') || document.body)}
+    </div></>,button.current.closest('.app') || document.body)}
   </>;
 }

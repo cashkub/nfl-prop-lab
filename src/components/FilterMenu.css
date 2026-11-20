@@ -36,7 +36,7 @@
 .week-control .filter-trigger,.board-sort .filter-trigger {width:auto;flex:1}
 @media(max-width:650px),(pointer:coarse) {
   .filter-trigger,.filter-popup [role=option] {min-height:44px;font-size:16px}
-  .filter-popup {max-height:min(70vh,420px)!important}
+  .filter-popup:not(.is-sheet) {max-height:min(70vh,420px)!important}
 }
 .filter-trigger span {white-space:normal;overflow-wrap:anywhere}
 .app .select-wrap > .filter-trigger + svg {display:none}
@@ -44,3 +44,16 @@
 .app .player-stepper > .filter-trigger svg {right:4px}
 @media(prefers-reduced-motion:reduce){.app .filter-trigger,.filter-popup,.filter-popup [role=option]{animation:none;transition:none}}
 .filter-option-day {display:block; color:#ddbbea; font-size:.73rem; font-weight:750; margin-bottom:.23rem}
+
+/* Phone bottom sheet */
+.filter-sheet-backdrop {position:fixed;inset:0;z-index:999;background:#07060acc;animation:filter-fade .16s ease both}
+.filter-popup.is-sheet {right:0;border-radius:18px 18px 0 0;border-bottom:0;padding:6px 10px calc(10px + env(safe-area-inset-bottom));animation:filter-sheet-in .2s cubic-bezier(.2,.8,.2,1) both}
+.filter-sheet-grip {display:block;width:40px;height:4px;margin:2px auto 4px;border-radius:4px;background:#5b4a68}
+.filter-sheet-done {flex:none;min-height:34px;padding:0 14px;border:1px solid #76588d;border-radius:999px;background:#2a2131;color:#f2ddff;font:750 .85rem system-ui;cursor:pointer}
+.filter-popup.is-sheet .filter-popup-options {-webkit-overflow-scrolling:touch;touch-action:pan-y;flex:1 1 auto}
+.filter-popup.is-sheet [role=option] {min-height:48px;transition:none}
+.filter-popup.is-sheet [role=option].active:not([aria-selected=true]) {border-color:transparent;background:none;box-shadow:none}
+.filter-popup.is-sheet [aria-selected=true] {border-color:#775b8c;background:linear-gradient(100deg,#35263e,#28212e)}
+@keyframes filter-sheet-in {from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes filter-fade {from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.filter-popup.is-sheet,.filter-sheet-backdrop{animation:none}}
