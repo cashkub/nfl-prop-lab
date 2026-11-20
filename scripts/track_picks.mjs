@@ -76,6 +76,7 @@ for(const [date,games] of slates)for(const type of ['props','anytime']){
       favoriteReason:{label:pick.favoriteReason.label,detail:pick.favoriteReason.detail},
       absence:pick.absence||null,tdModel:pick.touchdownModel?'logit.v1':null,
       value:Boolean(pick.value),chanceRanked:Boolean(pick.chanceRanked),context:pick.favoriteReason.detail,
+      rawChance:Number.isFinite(pick.raw)?pick.raw:null,modelEdge:Number.isFinite(pick.modelEdge)?pick.modelEdge:null,rule:kind==='prop'?'edge':'chance',
       look:{recentHits:pick.recentHits,recent:pick.recent,matchup:pick.matchup,matchupTone:pick.matchupTone,
         defense:pick.defense,volumeSignal:pick.volumeSignal,fairSide:pick.fairSide,quote:pick.quote},
       locksAt:game.kickoff,

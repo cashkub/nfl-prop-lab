@@ -16,7 +16,7 @@ import {rateStyle,defenseRankStyle} from './HitRate.jsx';
 import FilterMenu from './FilterMenu.jsx';
 import './TopLooks.css';
 
-import {MIN_PROP_LINE,MAX_PROP_PRICE,buildTopLooks,dayKey,dayLabel,fmtShare,averageLineLabel,projectionReason,gameContext} from '../lib/topLooksModel.js';
+import {MIN_PROP_LINE,MAX_PROP_PRICE,MIN_PROP_EDGE,MIN_TD_CHANCE,buildTopLooks,dayKey,dayLabel,fmtShare,averageLineLabel,projectionReason,gameContext} from '../lib/topLooksModel.js';
 export default function TopLooks({players,schedule,books,season,now,loading,error,onOpen}) {
   const future=useMemo(()=>schedule.filter(game=>Date.parse(game.kickoff)>now),[schedule,now]);
   // Today's slate stays on the page after kickoff so published picks remain visible all day.
@@ -68,7 +68,7 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
   return <main className="top-looks chart-lab"><NflToolHeader active="top"/>
     <div className="top-looks-heading">
       <div>
-        <p>{type==='anytime'?'Ranked by chance to score.':'Ranked by chance to hit.'}</p></div>
+        <p>{type==='anytime'?'Ranked by chance to score.':'Only props where the model beats the price.'}</p></div>
       <span className="slate-count">{picks.length} QUALIFIED</span>
     </div>
     <section className="top-filter panel">
@@ -81,8 +81,8 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
       <div className="pick-type" role="group" aria-label="Pick Type"><span>PICK TYPE</span><div><button type="button" aria-pressed={type==='anytime'} onClick={()=>setType('anytime')}>Anytime Touchdowns</button><button type="button" aria-pressed={type==='props'} onClick={()=>setType('props')}>Player Props</button></div></div>
       <span>{isReplay?`Week 9 Replay · ${displayedGameCount} archived games`:`${kickDate} · ${slate.length} ${slate.length===1?'game':'games'}`}</span>
       <details className="model-guide"><summary aria-label="What The Model Considers" title="What The Model Considers"><Info size={17}/></summary><div className="model-guide-panel"><b>HOW TOP LOOKS RANKS</b>{type==='anytime'
-  ?<p>Ranked by the model’s chance to score, whatever the price.</p>
-  :<p>Ranked by chance to hit. Skips lines under {MIN_PROP_LINE.receptions} catches or {MIN_PROP_LINE.receivingYards} yards and prices steeper than {MAX_PROP_PRICE}. Value = the chance beats the price.</p>}</div></details>
+  ?<p>Ranked by the model’s chance to score. Long shots under {Math.round(MIN_TD_CHANCE*100)}% are left off.</p>
+  :<p>Listed only when the model’s chance beats DraftKings’ price by {Math.round(MIN_PROP_EDGE*100)}+ points, best edge first, up to 3 per game. Skips lines under {MIN_PROP_LINE.receptions} catches or {MIN_PROP_LINE.receivingYards} yards and prices steeper than {MAX_PROP_PRICE}. Some nights there are none.</p>}</div></details>
     </section>
     {isReplay&&<aside className="top-replay-notice" role="note"><strong>HISTORICAL V2 REPLAY · WEEK 9</strong><p>{replayData.disclaimer}</p><small>{replayData.coverageNote} Replay selections and outcomes stay outside the official Model Record.</small></aside>}
     {loading||error||(!isReplay&&!archive.rows)?<p>{error||(archive.error?'Published picks unavailable.':'Loading Top Looks…')}</p>:isReplay&&!replayData?<p>Loading Week 9 replay…</p>:picks.length?
@@ -148,8 +148,8 @@ export default function TopLooks({players,schedule,books,season,now,loading,erro
           </div>}
         </article></React.Fragment>;
       })}</section>:
-      <section className="no-top-picks panel"><h2>No qualified picks for {isReplay?'Week 9 replay':kickDate}</h2>
-        <p>Check back after the next odds update.</p>
+      <section className="no-top-picks panel"><h2>{type==='anytime'?'No touchdown looks':'No props we like'} for {isReplay?'Week 9 replay':kickDate}</h2>
+        <p>Nothing beats the price right now. Lines are checked again at the next odds update.</p>
       </section>}
   </main>;
 }
