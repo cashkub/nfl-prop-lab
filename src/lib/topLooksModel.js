@@ -28,8 +28,14 @@ function defenseFit(rank,total,side,metric,position){
 // Smallest line worth listing, by market.
 export const MIN_PROP_LINE={receptions:2.5,receivingYards:19.5,rushingYards:19.5,rushingAttempts:6.5,passingYards:99.5};
 // Prices steeper than this pay too little to be worth listing.
-export const MAX_PROP_PRICE=-250;
+export const MAX_PROP_PRICE=-200;
 const VALUE_EDGE=.02;
+// A prop is only listed when the model's own chance beats the price's break-even by
+// this much. Ranking by raw chance mostly picked heavy favorites and lost the vig.
+export const MIN_PROP_EDGE=.05;
+// Anytime touchdowns below this chance are long shots, not looks.
+export const MIN_TD_CHANCE=.35;
+const MAX_PER_GAME=3;
 const impliedProbability=price=>Number.isFinite(price)?(price>0?100/(price+100):Math.abs(price)/(Math.abs(price)+100)):null;
 
 function weatherImpact(game,metric,side){
@@ -243,7 +249,7 @@ function makePick(player,game,metric,market,quote,history,defense,side,teamVolum
   const favoriteReason=touchdownModel
     ? {label:'Scoring Role',detail:`${touches.toFixed(1)} carries + targets per game over the last 3${primaryShare!=null?`, ${fmtShare(primaryShare)} of the team's red-zone ${favoriteRedZoneTarget?'targets':'carries'}`:''}; scored in ${hits} of the last ${history.length} games.`}
     : reasons[0]||{label:'Recent Results',detail:`The player hit ${hits} of ${history.length} games at this line.`};
-  return {player,game,metric,market,line,quote,history,defense,side,projection:projectionValue,values,recent,hits,recentHits,chance,fairSide,edge,score,rankScore,usageKey,usageTrend,share,volumeSignal,average,recentAverage,matchup,matchupTone,weather,injury,scoring,redZoneSignal,supportCount,projectionSignal,defensiveEdge,favoriteReason,touchdownModel};
+  return {player,game,metric,market,line,quote,history,defense,side,projection:projectionValue,values,recent,hits,recentHits,chance,raw:estimate.raw,fairSide,edge,score,rankScore,usageKey,usageTrend,share,volumeSignal,average,recentAverage,matchup,matchupTone,weather,injury,scoring,redZoneSignal,supportCount,projectionSignal,defensiveEdge,favoriteReason,touchdownModel};
 }
 
 function fmtShare(value){return Number.isFinite(value)?(value*100).toFixed(1)+'%':'—';}
@@ -318,20 +324,22 @@ export function buildTopLooks({players,slate,books,season,type}) {
     }
   }
   const cap=slate.length===1?3:10;
-  // Anytime touchdowns: the players most likely to score, whatever the price.
-  if(type==='anytime')return candidates.filter(p=>p.touchdownModel).sort((a,b)=>b.chance-a.chance).slice(0,cap);
-  // Player props: the sides most likely to hit. The chance already starts from the
-  // sportsbook's line, so this favors likely outcomes; `value` marks the ones whose
-  // chance also beats the price.
-  const used=new Set();
+  // Anytime touchdowns: the players most likely to score, whatever the price,
+  // but never long shots just to fill the list.
+  if(type==='anytime')return candidates.filter(p=>p.touchdownModel&&p.chance>=MIN_TD_CHANCE).sort((a,b)=>b.chance-a.chance).slice(0,cap);
+  // Player props: only sides where the model beats DraftKings' price, best edge first,
+  // at most three per game and one per player. A quiet slate can list none.
+  const used=new Set(),perGame=new Map();
   return candidates.map(p=>{
     const price=p.quote[p.side],needed=p.quote.isBookLine?impliedProbability(price):null;
-    return {...p,price,rankScore:Math.round(p.chance*100),chanceRanked:true,value:needed!=null&&p.chance-needed>=VALUE_EDGE};
-  }).filter(p=>p.chance>=.5&&!(Number.isFinite(p.price)&&p.price<MAX_PROP_PRICE))
-    .sort((a,b)=>Number(b.quote.isBookLine)-Number(a.quote.isBookLine)||b.chance-a.chance)
+    const modelEdge=needed!=null&&Number.isFinite(p.raw)?p.raw-needed:null;
+    return {...p,price,needed,modelEdge,rankScore:Math.round(p.chance*100),chanceRanked:true,value:modelEdge!=null&&modelEdge>=VALUE_EDGE};
+  }).filter(p=>p.modelEdge!=null&&p.modelEdge>=MIN_PROP_EDGE&&p.chance>=.5&&!(Number.isFinite(p.price)&&p.price<MAX_PROP_PRICE))
+    .sort((a,b)=>b.modelEdge-a.modelEdge||b.chance-a.chance)
     .filter(p=>{
-      if(used.has(p.player.id))return false;
-      used.add(p.player.id);return true;
+      const game=p.game.away+'@'+p.game.home;
+      if(used.has(p.player.id)||(perGame.get(game)||0)>=MAX_PER_GAME)return false;
+      used.add(p.player.id);perGame.set(game,(perGame.get(game)||0)+1);return true;
     }).slice(0,cap);
 }
 
